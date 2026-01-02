@@ -11,10 +11,11 @@ into logical modules that can be loaded on demand.
 - PF-2 ([specs/PF-2.md](PF-2.md)) Download the canonical `FPF-Spec.md` from the
   upstream GitHub source into `FPF/FPF-Spec.md`.
 - PF-3 ([specs/PF-3.md](PF-3.md)) Generate a compressed version that removes
-  non-normative sections while preserving rules and checklists.
+  non-normative sections while preserving rules and checklists, and display
+  compression stats.
 - PF-4 ([specs/PF-4.md](PF-4.md)) Produce an aggressive compressed variant that
   keeps only normative content for strict validation or code-generation
-  workflows.
+  workflows, and display compression stats.
 - PF-5 Split the spec into major parts (on disk) for further assembly into a
   compressed variant.
 - PF-6 Assemble a spec with a reduced number of parts according to a user-defined
