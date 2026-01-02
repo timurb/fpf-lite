@@ -2,3 +2,9 @@
 venv/
 compressed
 _repo-snapshot/
+
+# snapshots of chat sessions
+.sessions/
+
+# we generate this dir, not use its contents
+FPF/
