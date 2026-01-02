@@ -11,6 +11,7 @@ DEFAULT_SPEC_URL = "https://raw.githubusercontent.com/ailev/FPF/refs/heads/main/
 DEFAULT_OUTPUT = Path("FPF") / "FPF-Spec.md"
 DEFAULT_INPUT = Path("FPF") / "FPF-Spec.md"
 DEFAULT_COMPRESSED_DIR = Path("FPF")
+DEFAULT_PARTS_DIR = Path("FPF") / "parts"
 
 
 @dataclass(frozen=True)
@@ -127,6 +128,54 @@ def print_compression_stats(stats: CompressionStats, output_path: Path) -> None:
     )
 
 
+def split_fpf(input_path: Path, output_dir: Path) -> list[str]:
+    try:
+        input_file = input_path.open("r", encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"Input file not found: {input_path}") from exc
+
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise RuntimeError(f"Failed to write output directory: {output_dir}") from exc
+    manifest = []
+
+    def open_output(path: Path):
+        try:
+            return path.open("w", encoding="utf-8")
+        except OSError as exc:
+            raise RuntimeError(f"Failed to write output file: {path}") from exc
+
+    part_header_pattern = re.compile(r"^#+\s*Part\s+([A-Z])", re.IGNORECASE)
+    current_name = "FPF-Part-Preface.md"
+    manifest.append(current_name)
+    current_path = output_dir / current_name
+
+    with input_file:
+        current_file = open_output(current_path)
+        try:
+            for line in input_file:
+                normalized_line = normalize_text(line)
+                match = part_header_pattern.match(normalized_line)
+                if match:
+                    current_file.close()
+                    current_name = f"FPF-Part-{match.group(1).upper()}.md"
+                    manifest.append(current_name)
+                    current_path = output_dir / current_name
+                    current_file = open_output(current_path)
+                current_file.write(line)
+        finally:
+            current_file.close()
+
+    manifest_path = output_dir / "FPF-Parts-Manifest.txt"
+    try:
+        manifest_path.write_text("\n".join(manifest) + "\n", encoding="utf-8")
+    except OSError as exc:
+        raise RuntimeError(f"Failed to write output file: {manifest_path}") from exc
+
+    return manifest
+
+
 def download_spec(url: str, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -207,6 +256,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output path for the aggressive compressed spec.",
     )
 
+    split_parser = subparsers.add_parser(
+        "split",
+        help="Split the spec into per-part files.",
+    )
+    split_parser.add_argument(
+        "--input",
+        default=str(DEFAULT_INPUT),
+        help="Source path for the FPF-Spec.md file.",
+    )
+    split_parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_PARTS_DIR),
+        help="Directory for part outputs.",
+    )
+
     return parser
 
 
@@ -222,6 +286,17 @@ def main(argv: list[str]) -> int:
             print(str(exc), file=sys.stderr)
             return 1
         print(f"Downloaded FPF spec to {output_path}")
+        return 0
+
+    if args.command == "split":
+        input_path = Path(args.input)
+        output_dir = Path(args.output_dir)
+        try:
+            split_fpf(input_path, output_dir)
+        except Exception as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        print(f"Wrote {output_dir / 'FPF-Parts-Manifest.txt'}")
         return 0
 
     if args.command in {"strip", "strip-lite", "strip-aggressive"}:

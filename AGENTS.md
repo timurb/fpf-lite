@@ -119,6 +119,7 @@ When reasoning through problems, apply these principles:
 - Never edit files under `specs/` without explicit user approval.
 - If specs and code disagree, present options: update specs or update code.
 - When using bullets in responses, include an ID for each bullet so the user can refer to them.
+- Always use the project `venv` Python for commands and tests.
 
 ## Decision Framework (Quick Mode)
 
