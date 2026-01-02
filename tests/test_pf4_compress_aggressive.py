@@ -23,7 +23,7 @@ class TestPF4CompressAggressive(unittest.TestCase):
             with redirect_stdout(buffer):
                 exit_code = fpf.main(
                     [
-                        "compress-aggressive",
+                        "strip-aggressive",
                         "--input",
                         str(input_path),
                         "--output",

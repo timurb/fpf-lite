@@ -23,7 +23,7 @@ class TestPF3CompressLite(unittest.TestCase):
             with redirect_stdout(buffer):
                 exit_code = fpf.main(
                     [
-                        "compress-lite",
+                        "strip-lite",
                         "--input",
                         str(input_path),
                         "--output",

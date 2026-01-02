@@ -9,9 +9,8 @@ from pathlib import Path
 
 DEFAULT_SPEC_URL = "https://raw.githubusercontent.com/ailev/FPF/refs/heads/main/FPF-Spec.md"
 DEFAULT_OUTPUT = Path("FPF") / "FPF-Spec.md"
-DEFAULT_INPUT = Path("FPF-Spec.md")
-FALLBACK_INPUT = Path("FPF") / "FPF-Spec.md"
-DEFAULT_COMPRESSED_DIR = Path("compressed")
+DEFAULT_INPUT = Path("FPF") / "FPF-Spec.md"
+DEFAULT_COMPRESSED_DIR = Path("FPF")
 
 
 @dataclass(frozen=True)
@@ -59,57 +58,60 @@ def compress_fpf(input_path: Path, output_path: Path, aggressive: bool) -> Compr
     start_marker_pattern = re.compile(r"^#+\s+(Part A|A\.0)", re.IGNORECASE)
 
     try:
-        lines = input_path.read_text(encoding="utf-8").splitlines(keepends=True)
+        input_file = input_path.open("r", encoding="utf-8")
     except FileNotFoundError as exc:
         raise RuntimeError(f"Input file not found: {input_path}") from exc
 
-    output_lines = []
     is_content_started = False
     skipping_section = False
     skip_level = 0
     removed_counts = {keyword: 0 for keyword in remove_keywords}
-
-    for line in lines:
-        if not is_content_started:
-            if start_marker_pattern.match(line):
-                is_content_started = True
-                output_lines.append(line)
-                continue
-            continue
-
-        match = header_pattern.match(line)
-        if match:
-            level = len(match.group(1))
-            raw_title = match.group(2).strip()
-            clean_title = normalize_text(raw_title)
-
-            if skipping_section:
-                if level <= skip_level:
-                    skipping_section = False
-                else:
-                    continue
-
-            found_keyword = None
-            for keyword in remove_keywords:
-                if keyword.lower() in clean_title.lower():
-                    found_keyword = keyword
-                    break
-
-            if found_keyword and not skipping_section:
-                skipping_section = True
-                skip_level = level
-                removed_counts[found_keyword] += 1
-                continue
-
-        if not skipping_section:
-            output_lines.append(line)
+    original_lines = 0
+    new_lines = 0
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text("".join(output_lines), encoding="utf-8")
+    with input_file, output_path.open("w", encoding="utf-8") as output_file:
+        for line in input_file:
+            original_lines += 1
+            if not is_content_started:
+                if start_marker_pattern.match(line):
+                    is_content_started = True
+                    output_file.write(line)
+                    new_lines += 1
+                continue
+
+            match = header_pattern.match(line)
+            if match:
+                level = len(match.group(1))
+                raw_title = match.group(2).strip()
+                clean_title = normalize_text(raw_title)
+
+                if skipping_section:
+                    if level <= skip_level:
+                        skipping_section = False
+                    else:
+                        continue
+
+                found_keyword = None
+                for keyword in remove_keywords:
+                    if keyword.lower() in clean_title.lower():
+                        found_keyword = keyword
+                        break
+
+                if found_keyword and not skipping_section:
+                    skipping_section = True
+                    skip_level = level
+                    removed_counts[found_keyword] += 1
+                    continue
+
+            if not skipping_section:
+                output_file.write(line)
+                new_lines += 1
+
     return CompressionStats(
         removed_counts=removed_counts,
-        original_lines=len(lines),
-        new_lines=len(output_lines),
+        original_lines=original_lines,
+        new_lines=new_lines,
     )
 
 
@@ -160,46 +162,46 @@ def build_parser() -> argparse.ArgumentParser:
         help="Destination path for the downloaded spec.",
     )
 
-    compress_parser = subparsers.add_parser(
-        "compress",
-        help="Generate compressed spec files (lite and aggressive).",
-    )
-    compress_parser.add_argument(
-        "--input",
-        default=str(DEFAULT_INPUT),
-        help="Source path for the FPF-Spec.md file.",
-    )
-    compress_parser.add_argument(
-        "--output-dir",
-        default=str(DEFAULT_COMPRESSED_DIR),
-        help="Directory for compressed outputs.",
-    )
-
-    compress_lite_parser = subparsers.add_parser(
-        "compress-lite",
+    strip_lite_parser = subparsers.add_parser(
+        "strip-lite",
         help="Generate the lite compressed spec.",
     )
-    compress_lite_parser.add_argument(
+    strip_lite_parser.add_argument(
         "--input",
         default=str(DEFAULT_INPUT),
         help="Source path for the FPF-Spec.md file.",
     )
-    compress_lite_parser.add_argument(
+    strip_lite_parser.add_argument(
         "--output",
         default=str(DEFAULT_COMPRESSED_DIR / "FPF-Spec-Lite.md"),
         help="Output path for the lite compressed spec.",
     )
 
-    compress_aggressive_parser = subparsers.add_parser(
-        "compress-aggressive",
-        help="Generate the aggressive compressed spec.",
+    strip_parser = subparsers.add_parser(
+        "strip",
+        help="Generate compressed spec files (lite and aggressive).",
     )
-    compress_aggressive_parser.add_argument(
+    strip_parser.add_argument(
         "--input",
         default=str(DEFAULT_INPUT),
         help="Source path for the FPF-Spec.md file.",
     )
-    compress_aggressive_parser.add_argument(
+    strip_parser.add_argument(
+        "--output-dir",
+        default=str(DEFAULT_COMPRESSED_DIR),
+        help="Directory for compressed outputs.",
+    )
+
+    strip_aggressive_parser = subparsers.add_parser(
+        "strip-aggressive",
+        help="Generate the aggressive compressed spec.",
+    )
+    strip_aggressive_parser.add_argument(
+        "--input",
+        default=str(DEFAULT_INPUT),
+        help="Source path for the FPF-Spec.md file.",
+    )
+    strip_aggressive_parser.add_argument(
         "--output",
         default=str(DEFAULT_COMPRESSED_DIR / "FPF-Spec-Aggressive.md"),
         help="Output path for the aggressive compressed spec.",
@@ -214,16 +216,18 @@ def main(argv: list[str]) -> int:
 
     if args.command == "download":
         output_path = Path(args.output)
-        download_spec(args.url, output_path)
+        try:
+            download_spec(args.url, output_path)
+        except Exception as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
         print(f"Downloaded FPF spec to {output_path}")
         return 0
 
-    if args.command in {"compress", "compress-lite", "compress-aggressive"}:
+    if args.command in {"strip", "strip-lite", "strip-aggressive"}:
         input_path = Path(args.input)
-        if not input_path.exists() and FALLBACK_INPUT.exists():
-            input_path = FALLBACK_INPUT
 
-        if args.command == "compress":
+        if args.command == "strip":
             output_dir = Path(args.output_dir)
             lite_path = output_dir / "FPF-Spec-Lite.md"
             aggressive_path = output_dir / "FPF-Spec-Aggressive.md"
@@ -235,14 +239,14 @@ def main(argv: list[str]) -> int:
             print(f"Wrote {aggressive_path}")
             return 0
 
-        if args.command == "compress-lite":
+        if args.command == "strip-lite":
             output_path = Path(args.output)
             stats = compress_fpf(input_path, output_path, aggressive=False)
             print_compression_stats(stats, output_path)
             print(f"Wrote {output_path}")
             return 0
 
-        if args.command == "compress-aggressive":
+        if args.command == "strip-aggressive":
             output_path = Path(args.output)
             stats = compress_fpf(input_path, output_path, aggressive=True)
             print_compression_stats(stats, output_path)

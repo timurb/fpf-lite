@@ -1,6 +1,6 @@
 import io
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -76,6 +76,31 @@ class TestPF2Download(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             self.assertTrue(output_path.exists())
             self.assertIn("Downloaded FPF spec to", buffer.getvalue())
+
+    def test_main_download_command_reports_error(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            output_path = Path(tmp_dir) / "FPF" / "FPF-Spec.md"
+
+            with patch(
+                "fpf.urllib.request.urlopen",
+                return_value=FakeResponse(404, b""),
+            ):
+                buffer_out = io.StringIO()
+                buffer_err = io.StringIO()
+                with redirect_stdout(buffer_out), redirect_stderr(buffer_err):
+                    exit_code = fpf.main(
+                        [
+                            "download",
+                            "--url",
+                            "https://example.test/spec.md",
+                            "--output",
+                            str(output_path),
+                        ]
+                    )
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("HTTP 404", buffer_err.getvalue())
+            self.assertFalse(output_path.exists())
 
 
 if __name__ == "__main__":

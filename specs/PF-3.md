@@ -8,7 +8,7 @@ non-normative sections while preserving rules and checklists.
 - `FPF/FPF-Spec.md`
 
 ## Outputs
-- `FPF/FPF-Spec-Lite.md`.
+- `FPF/FPF-Spec-Lite.md` (default; configurable via `--output`).
 
 ## Behavior
 - Remove the Preface and any content before the first `Part A` or `A.0` header.
@@ -24,6 +24,8 @@ non-normative sections while preserving rules and checklists.
   - en dash/em dash with `-`
   - non-breaking space (U+00A0) with a regular space
 - Write output with UTF-8 encoding.
+- Print compression stats to stdout, including per-keyword removal counts and
+  line reduction.
 
 ## Invocation
 - `./fpf.py strip-lite`
@@ -33,6 +35,8 @@ non-normative sections while preserving rules and checklists.
 - Do not modify the source file.
 
 ## Success Criteria
-- The output file exists at `FPF/FPF-Spec-Lite.md`.
+- The output file exists at `FPF/FPF-Spec-Lite.md` by default, or the
+  user-specified `--output` path.
 - Removed sections match only the keyword list above.
 - All remaining content is preserved in original order.
+- Stats are printed to stdout for the run.

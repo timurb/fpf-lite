@@ -114,6 +114,12 @@ When reasoning through problems, apply these principles:
 - Ensure solution addresses the root cause
 - Never commit unless explicitly asked
 
+## Repo-Specific Rules
+
+- Never edit files under `specs/` without explicit user approval.
+- If specs and code disagree, present options: update specs or update code.
+- When using bullets in responses, include an ID for each bullet so the user can refer to them.
+
 ## Decision Framework (Quick Mode)
 
 **When to use:** Single decisions, easily reversible, doesn't need persistent evidence trail.
@@ -225,6 +231,6 @@ RECOMMENDATION: [Which + why, or "need your input on X"]
 
 ## FPF usage
 
-Use FPF from @FPF/FPF-Spec.md for reasoning. Ignore it for writing code.
+Use FPF from FPF/FPF-Spec.md for reasoning and working with text and specs. Don't use it when doing code generation.
 
 **Transformer Mandate** — Systems cannot transform themselves. Humans decide; agents document. Autonomous architectural decisions = protocol violation.
