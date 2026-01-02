@@ -17,6 +17,8 @@ reassembled or selectively assembled later.
 - Read the input line-by-line.
 - Treat all content before the first Part header as the Preface.
 - Detect Part headers using a case-insensitive match for `^#+\s*Part\s+([A-Z])`.
+- Also treat bold Part markers as Part headers using a case-insensitive match for
+  `^\s*\*\*Part\s+([A-Z])\b`.
 - Normalize header text before matching by replacing:
   - non-breaking hyphen (U+2011) with `-`
   - en dash/em dash with `-`

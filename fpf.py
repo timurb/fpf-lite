@@ -147,6 +147,7 @@ def split_fpf(input_path: Path, output_dir: Path) -> list[str]:
             raise RuntimeError(f"Failed to write output file: {path}") from exc
 
     part_header_pattern = re.compile(r"^#+\s*Part\s+([A-Z])", re.IGNORECASE)
+    bold_part_pattern = re.compile(r"^\s*\*\*Part\s+([A-Z])\b", re.IGNORECASE)
     current_name = "FPF-Part-Preface.md"
     manifest.append(current_name)
     current_path = output_dir / current_name
@@ -157,6 +158,8 @@ def split_fpf(input_path: Path, output_dir: Path) -> list[str]:
             for line in input_file:
                 normalized_line = normalize_text(line)
                 match = part_header_pattern.match(normalized_line)
+                if match is None:
+                    match = bold_part_pattern.match(normalized_line)
                 if match:
                     current_file.close()
                     current_name = f"FPF-Part-{match.group(1).upper()}.md"
