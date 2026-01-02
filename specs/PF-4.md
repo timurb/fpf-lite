@@ -22,6 +22,9 @@ only normative content needed for strict validation or code generation.
 - Preserve all other sections and their subsections.
 - Write output with UTF-8 encoding.
 
+## Invocation
+- `./fpf.py strip-aggressive`
+
 ## Constraints
 - Operate line-by-line without loading the full file into memory beyond the
   existing read in `fpf_compressor.py`.

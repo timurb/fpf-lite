@@ -17,9 +17,7 @@ into logical modules that can be loaded on demand.
   workflows.
 - PF-5 Split the spec into major parts (on disk) for further assembly into a
   compressed variant.
-- PF-6 Provide a way to validate the integrity of the split parts against the
-  original spec.
-- PF-7 Assemble a spec with a reduced number of parts according to a user-defined
+- PF-6 Assemble a spec with a reduced number of parts according to a user-defined
   list of parts.
 
 ## User Problems Addressed

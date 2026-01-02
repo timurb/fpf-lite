@@ -1,10 +1,58 @@
+# we generate this dir, not use its contents
+FPF/
+
+# Add below lines to exclude OS settings and caches
+.DS_Store
+Thumbs.db
+.trash/
+
 .envrc
-venv/
-compressed
 _repo-snapshot/
 
 # snapshots of chat sessions
 .sessions/
 
-# we generate this dir, not use its contents
-FPF/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+

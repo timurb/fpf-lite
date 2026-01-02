@@ -15,6 +15,10 @@ local `FPF/` directory.
 - Create the `FPF/` directory if it does not exist.
 - Fail with a non-zero exit code and a clear error message on download errors.
 
+## Invocation
+- `./fpf.py download`
+- `./fpf.py download --url <spec-url> --output <path>`
+
 ## Constraints
 - Use Python standard library networking for the main script.
 - Do not modify any files outside `FPF/FPF-Spec.md`.

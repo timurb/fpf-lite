@@ -25,6 +25,9 @@ non-normative sections while preserving rules and checklists.
   - non-breaking space (U+00A0) with a regular space
 - Write output with UTF-8 encoding.
 
+## Invocation
+- `./fpf.py strip-lite`
+
 ## Constraints
 - Operate line-by-line without loading the full file into memory.
 - Do not modify the source file.
