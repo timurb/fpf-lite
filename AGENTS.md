@@ -70,6 +70,8 @@ When reasoning through problems, apply these principles:
 - Search for key functions, classes, variables
 - Identify root cause
 - Continuously validate and update understanding
+- If a feature has a standalone spec in `specs/`, link to it from
+  `specs/Feature Description.md` under the matching bullet.
 
 ### 3. Research (When Needed)
 
