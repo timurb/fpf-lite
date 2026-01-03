@@ -8,10 +8,10 @@ Split the canonical FPF spec into per-part files on disk so the parts can be
 reassembled or selectively assembled later.
 
 ## Inputs
-- `FPF/FPF-Spec.md`
+- `<work-dir>/FPF-Spec.md`
 
 ## Outputs
-- `FPF/parts/` (default; configurable via `--output-dir`)
+- `<work-dir>/` (default; configurable via `--work-dir`)
   - `FPF-Part-Preface.md`
   - `FPF-Part-A.md`, `FPF-Part-B.md`, ... (one file per Part header found)
   - `FPF-Parts-Manifest.yaml` (YAML manifest listing the part filenames in
@@ -30,21 +30,23 @@ reassembled or selectively assembled later.
   separators or modified whitespace.
 - Write `FPF-Parts-Manifest.yaml` listing the part filenames in the order
   encountered, starting with `FPF-Part-Preface.md`.
+- Write original file name as `baseline_file` parameter in manifest (no paths, just filename).
 - Fail with a non-zero exit code and a clear error message if the input does not
   exist or any output cannot be written.
 
 ## Invocation
 - `./fpf.py split`
-- `./fpf.py split --input <spec-path> --output-dir <dir>`
+- `./fpf.py split --work-dir <dir>`
 
 ## Constraints
 - Reuse normalization function across all features
 - Do not modify the source file.
 - Do not load the entire input into memory.
 - Write output files with UTF-8 encoding.
+- All output files and manifest entries are filenames in `<work-dir>`.
 
 ## Success Criteria
-- The output directory contains one file per part plus the manifest.
+- The work directory contains one file per part plus the manifest.
 - Concatenating the parts in manifest order reproduces the original input
   byte-for-byte.
 - Parts A through K must be produced from original FPF Spec downloaded from internet (protection from FPF format drift)

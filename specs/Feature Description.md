@@ -39,11 +39,11 @@ into logical modules that can be loaded on demand.
   without losing consistency or meaning.
 
 ## Inputs and Outputs
-- IO-1 Input: `FPF/FPF-Spec.md` initially downloaded from
+- IO-1 Input: `<work-dir>/FPF-Spec.md` initially downloaded from
   `https://raw.githubusercontent.com/ailev/FPF/refs/heads/main/FPF-Spec.md`.
 - IO-2 Outputs:
-  - IO-2.1 `FPF/FPF-Spec-Lite.md` and
-    `FPF/FPF-Spec-Aggressive.md` (aggressively stripped variants)
+  - IO-2.1 `<work-dir>/FPF-Spec-Lite.md` and
+    `<work-dir>/FPF-Spec-Aggressive.md` (aggressively stripped variants)
   - IO-2.2 Outputs for modular splits to be defined later.
 
 ## Success Criteria

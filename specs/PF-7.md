@@ -8,10 +8,10 @@ Normalize typographic characters and Part headers in the spec to a standard
 ASCII form.
 
 ## Inputs
-- `FPF/FPF-Spec.md` (default; configurable via `--input`)
+- `<work-dir>/FPF-Spec.md` (default; configurable via `--input`)
 
 ## Outputs
-- `FPF/FPF-Spec-Normalized.md` (default; configurable via `--output`)
+- `<work-dir>/FPF-Spec-Normalized.md` (default; configurable via `--output`)
 - If `--in-place` is set, overwrite the input file.
 
 ## Behavior
@@ -35,14 +35,16 @@ ASCII form.
 
 ## Invocation
 - `./fpf.py normalize-typographics`
-- `./fpf.py normalize-typographics --input <path> --output <path>`
-- `./fpf.py normalize-typographics --input <path> --in-place`
+- `./fpf.py normalize-typographics --work-dir <dir>`
+- `./fpf.py normalize-typographics --input <filename> --output <filename> --work-dir <dir>`
+- `./fpf.py normalize-typographics --input <filename> --in-place --work-dir <dir>`
 
 ## Constraints
 - Do not load entire input into memory.
 - Do not modify files outside the output target.
 - Keep all typography-related helper functions and constants in a reusable
   module and use it across features (PF-3/4/5/7/8).
+- `--input` and `--output` MUST be filenames resolved within `<work-dir>`.
 
 ## Success Criteria
 - Output exists and differs from input only by the defined typographic and

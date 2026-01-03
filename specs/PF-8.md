@@ -8,7 +8,7 @@ Verify that the spec contains only standard ASCII typography and normalized Part
 headers. Report all violations and fail if any are found.
 
 ## Inputs
-- `FPF/FPF-Spec.md` (default; configurable via `--input`)
+- `<work-dir>/FPF-Spec.md` (default; configurable via `--input`)
 
 ## Outputs
 - None. Reports violations to stdout/stderr.
@@ -27,12 +27,14 @@ headers. Report all violations and fail if any are found.
 
 ## Invocation
 - `./fpf.py check-typographics`
-- `./fpf.py check-typographics --input <path>`
+- `./fpf.py check-typographics --work-dir <dir>`
+- `./fpf.py check-typographics --input <filename> --work-dir <dir>`
 
 ## Constraints
 - Do not load entire input into memory.
 - Keep all typography-related helper functions and constants in a reusable
   module and use it across features (PF-3/4/5/7/8).
+- `--input` MUST be a filename resolved within `<work-dir>`.
 
 ## Success Criteria
 - Exit code 0 when no violations are found.

@@ -8,10 +8,10 @@ Produce an aggressive compressed version of the FPF specification that keeps
 only normative content needed for strict validation or code generation.
 
 ## Inputs
-- `FPF/FPF-Spec.md`
+- `<work-dir>/FPF-Spec.md`
 
 ## Outputs
-- `FPF/FPF-Spec-Aggressive.md` (default; configurable via `--output`).
+- `<work-dir>/FPF-Spec-Aggressive.md`
 
 ## Behavior
 - Apply all PF-3 behavior.
@@ -29,15 +29,16 @@ only normative content needed for strict validation or code generation.
 
 ## Invocation
 - `./fpf.py strip-aggressive`
+- `./fpf.py strip-aggressive --work-dir <dir>`
 
 ## Constraints
 - Operate line-by-line without loading the full file into memory beyond the
   existing read in `fpf_compressor.py`.
 - Do not modify the source file.
+- Input and output filenames are resolved within `<work-dir>`.
 
 ## Success Criteria
-- The output file exists at `FPF/FPF-Spec-Aggressive.md` by default, or
-  the user-specified `--output` path.
+- The output file exists at `<work-dir>/FPF-Spec-Aggressive.md`.
 - Removed sections include all PF-3 keywords plus the aggressive list.
 - All remaining content is preserved in original order.
 - Stats are printed to stdout for the run.
