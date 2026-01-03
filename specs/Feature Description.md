@@ -18,8 +18,8 @@ into logical modules that can be loaded on demand.
   workflows, and display compression stats.
 - PF-5 ([specs/PF-5.md](PF-5.md)) Split the FPF spec into major parts (on disk)
   for further assembly into a compressed variant.
-- PF-6 Assemble a spec with a reduced number of parts according to a user-defined
-  list of parts.
+- PF-6 ([specs/PF-6.md](PF-6.md)) Assemble a spec with a reduced number of
+  parts according to a user-defined list of parts.
 
 ## User Problems Addressed
 - UP-1 The full spec is too large for typical LLM context windows, causing
@@ -45,3 +45,9 @@ into logical modules that can be loaded on demand.
   for LLM prompting.
 - SC-4 Split outputs match the original spec when recombined in the splitter's
   integrity check.
+
+## TODOs
+- [ ] Produce warnings on format drift in upstream
+- Fix format in upstream for returning of fixes:
+  - [ ] Part headers
+  - [ ] Hyphens and typographics

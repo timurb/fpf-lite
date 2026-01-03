@@ -178,6 +178,142 @@ def split_fpf(input_path: Path, output_dir: Path) -> list[str]:
     return manifest
 
 
+def resolve_manifest_path(base_dir: Path, value: str) -> Path:
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        path = base_dir / path
+    return path.resolve(strict=False)
+
+
+def load_yaml_manifest(manifest_path: Path) -> dict[str, object]:
+    try:
+        text = manifest_path.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"Manifest file not found: {manifest_path}") from exc
+    except OSError as exc:
+        raise RuntimeError(f"Failed to read manifest: {manifest_path}") from exc
+
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise RuntimeError(f"Failed to parse manifest: {manifest_path}") from exc
+
+    if not isinstance(data, dict):
+        raise RuntimeError(f"Manifest must be a mapping: {manifest_path}")
+
+    return data
+
+
+def load_baseline_parts(baseline_manifest_path: Path) -> list[tuple[str, Path]]:
+    data = load_yaml_manifest(baseline_manifest_path)
+    parts = data.get("parts")
+    if not isinstance(parts, list):
+        raise RuntimeError(f"Baseline manifest missing parts list: {baseline_manifest_path}")
+    base_dir = baseline_manifest_path.parent
+    entries: list[tuple[str, Path]] = []
+    for raw in parts:
+        if not isinstance(raw, str) or not raw:
+            raise RuntimeError(f"Invalid part entry in baseline manifest: {baseline_manifest_path}")
+        entries.append((raw, resolve_manifest_path(base_dir, raw)))
+    return entries
+
+
+def count_lines(path: Path) -> int:
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            return sum(1 for _ in handle)
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"Part file not found: {path}") from exc
+    except OSError as exc:
+        raise RuntimeError(f"Failed to read part file: {path}") from exc
+
+
+def validate_part_paths(part_paths: list[Path]) -> None:
+    for part_path in part_paths:
+        try:
+            with part_path.open("r", encoding="utf-8"):
+                pass
+        except FileNotFoundError as exc:
+            raise RuntimeError(f"Part file not found: {part_path}") from exc
+        except OSError as exc:
+            raise RuntimeError(f"Failed to read part file: {part_path}") from exc
+
+
+def assemble_fpf(manifest_path: Path) -> tuple[Path, CompressionStats]:
+    data = load_yaml_manifest(manifest_path)
+    output_value = data.get("output")
+    parts_value = data.get("parts")
+    baseline_value = data.get("baseline_manifest")
+
+    if not isinstance(output_value, str) or not output_value:
+        raise RuntimeError(f"Manifest missing output path: {manifest_path}")
+    if not isinstance(parts_value, list):
+        raise RuntimeError(f"Manifest missing parts list: {manifest_path}")
+    if not isinstance(baseline_value, str) or not baseline_value:
+        raise RuntimeError(f"Manifest missing baseline_manifest: {manifest_path}")
+
+    base_dir = manifest_path.parent
+    output_path = resolve_manifest_path(base_dir, output_value)
+    part_paths = []
+    for raw in parts_value:
+        if not isinstance(raw, str) or not raw:
+            raise RuntimeError(f"Invalid part entry in manifest: {manifest_path}")
+        part_paths.append(resolve_manifest_path(base_dir, raw))
+    baseline_manifest_path = resolve_manifest_path(base_dir, baseline_value)
+
+    baseline_entries: list[tuple[str, Path]] | None = None
+    try:
+        baseline_entries = load_baseline_parts(baseline_manifest_path)
+    except RuntimeError as exc:
+        print(f"Warning: {exc}", file=sys.stderr)
+
+    if baseline_entries is not None:
+        baseline_paths = {path for _, path in baseline_entries}
+        for part_path in part_paths:
+            if part_path not in baseline_paths:
+                raise RuntimeError(f"Part not in baseline manifest: {part_path}")
+
+    validate_part_paths(part_paths)
+
+    try:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise RuntimeError(f"Failed to write output file: {output_path}") from exc
+
+    output_lines = 0
+    try:
+        with output_path.open("w", encoding="utf-8") as output_file:
+            for part_path in part_paths:
+                try:
+                    with part_path.open("r", encoding="utf-8") as part_file:
+                        for line in part_file:
+                            output_file.write(line)
+                            output_lines += 1
+                except FileNotFoundError as exc:
+                    raise RuntimeError(f"Part file not found: {part_path}") from exc
+                except OSError as exc:
+                    raise RuntimeError(f"Failed to read part file: {part_path}") from exc
+    except OSError as exc:
+        raise RuntimeError(f"Failed to write output file: {output_path}") from exc
+
+    removed_counts: dict[str, int] = {}
+    if baseline_entries is not None:
+        baseline_lines = 0
+        for raw, path in baseline_entries:
+            baseline_lines += count_lines(path)
+            if path not in part_paths:
+                removed_counts[raw] = removed_counts.get(raw, 0) + 1
+    else:
+        baseline_lines = output_lines
+
+    stats = CompressionStats(
+        removed_counts=removed_counts,
+        original_lines=baseline_lines,
+        new_lines=output_lines,
+    )
+    return output_path, stats
+
+
 def download_spec(url: str, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -273,6 +409,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Directory for part outputs.",
     )
 
+    assemble_parser = subparsers.add_parser(
+        "assemble",
+        help="Assemble a spec from a YAML manifest.",
+    )
+    assemble_parser.add_argument(
+        "--manifest",
+        required=True,
+        help="Path to the YAML manifest file.",
+    )
+
     return parser
 
 
@@ -299,6 +445,16 @@ def main(argv: list[str]) -> int:
             print(str(exc), file=sys.stderr)
             return 1
         print(f"Wrote {output_dir / 'FPF-Parts-Manifest.yaml'}")
+        return 0
+
+    if args.command == "assemble":
+        manifest_path = Path(args.manifest)
+        try:
+            output_path, stats = assemble_fpf(manifest_path)
+        except Exception as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        print_compression_stats(stats, output_path)
         return 0
 
     if args.command in {"strip", "strip-lite", "strip-aggressive"}:
