@@ -8,11 +8,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
+
 DEFAULT_SPEC_URL = "https://raw.githubusercontent.com/ailev/FPF/refs/heads/main/FPF-Spec.md"
-DEFAULT_OUTPUT = Path("FPF") / "FPF-Spec.md"
-DEFAULT_INPUT = Path("FPF") / "FPF-Spec.md"
-DEFAULT_COMPRESSED_DIR = Path("FPF")
-DEFAULT_PARTS_DIR = Path("FPF") / "parts"
+DEFAULT_WORK_DIR = Path("FPF")
+DEFAULT_SPEC_NAME = "FPF-Spec.md"
+DEFAULT_LITE_NAME = "FPF-Spec-Lite.md"
+DEFAULT_AGGRESSIVE_NAME = "FPF-Spec-Aggressive.md"
+DEFAULT_PARTS_MANIFEST = "FPF-Parts-Manifest.yaml"
 
 
 @dataclass(frozen=True)
@@ -168,9 +170,12 @@ def split_fpf(input_path: Path, output_dir: Path) -> list[str]:
         finally:
             current_file.close()
 
-    manifest_path = output_dir / "FPF-Parts-Manifest.yaml"
+    manifest_path = output_dir / DEFAULT_PARTS_MANIFEST
     try:
-        manifest_text = yaml.safe_dump({"parts": manifest}, sort_keys=False)
+        manifest_text = yaml.safe_dump(
+            {"parts": manifest, "baseline_file": input_path.name},
+            sort_keys=False,
+        )
         manifest_path.write_text(manifest_text, encoding="utf-8")
     except OSError as exc:
         raise RuntimeError(f"Failed to write output file: {manifest_path}") from exc
@@ -178,11 +183,11 @@ def split_fpf(input_path: Path, output_dir: Path) -> list[str]:
     return manifest
 
 
-def resolve_manifest_path(base_dir: Path, value: str) -> Path:
-    path = Path(value).expanduser()
-    if not path.is_absolute():
-        path = base_dir / path
-    return path.resolve(strict=False)
+def resolve_workdir_path(work_dir: Path, value: str, label: str) -> Path:
+    path = Path(value)
+    if value in {".", ".."} or path.is_absolute() or path.name != value:
+        raise RuntimeError(f"{label} must be a filename: {value}")
+    return (work_dir / path).resolve(strict=False)
 
 
 def load_yaml_manifest(manifest_path: Path) -> dict[str, object]:
@@ -202,20 +207,6 @@ def load_yaml_manifest(manifest_path: Path) -> dict[str, object]:
         raise RuntimeError(f"Manifest must be a mapping: {manifest_path}")
 
     return data
-
-
-def load_baseline_parts(baseline_manifest_path: Path) -> list[tuple[str, Path]]:
-    data = load_yaml_manifest(baseline_manifest_path)
-    parts = data.get("parts")
-    if not isinstance(parts, list):
-        raise RuntimeError(f"Baseline manifest missing parts list: {baseline_manifest_path}")
-    base_dir = baseline_manifest_path.parent
-    entries: list[tuple[str, Path]] = []
-    for raw in parts:
-        if not isinstance(raw, str) or not raw:
-            raise RuntimeError(f"Invalid part entry in baseline manifest: {baseline_manifest_path}")
-        entries.append((raw, resolve_manifest_path(base_dir, raw)))
-    return entries
 
 
 def count_lines(path: Path) -> int:
@@ -239,39 +230,26 @@ def validate_part_paths(part_paths: list[Path]) -> None:
             raise RuntimeError(f"Failed to read part file: {part_path}") from exc
 
 
-def assemble_fpf(manifest_path: Path) -> tuple[Path, CompressionStats]:
+def assemble_fpf(
+    manifest_name: str, work_dir: Path
+) -> tuple[Path, CompressionStats | None]:
+    manifest_path = resolve_workdir_path(work_dir, manifest_name, "Manifest name")
     data = load_yaml_manifest(manifest_path)
-    output_value = data.get("output")
+    output_value = data.get("output_file")
     parts_value = data.get("parts")
-    baseline_value = data.get("baseline_manifest")
+    baseline_value = data.get("baseline_file")
 
     if not isinstance(output_value, str) or not output_value:
-        raise RuntimeError(f"Manifest missing output path: {manifest_path}")
+        raise RuntimeError(f"Manifest missing output_file: {manifest_path}")
     if not isinstance(parts_value, list):
         raise RuntimeError(f"Manifest missing parts list: {manifest_path}")
-    if not isinstance(baseline_value, str) or not baseline_value:
-        raise RuntimeError(f"Manifest missing baseline_manifest: {manifest_path}")
 
-    base_dir = manifest_path.parent
-    output_path = resolve_manifest_path(base_dir, output_value)
+    output_path = resolve_workdir_path(work_dir, output_value, "Output file")
     part_paths = []
     for raw in parts_value:
         if not isinstance(raw, str) or not raw:
             raise RuntimeError(f"Invalid part entry in manifest: {manifest_path}")
-        part_paths.append(resolve_manifest_path(base_dir, raw))
-    baseline_manifest_path = resolve_manifest_path(base_dir, baseline_value)
-
-    baseline_entries: list[tuple[str, Path]] | None = None
-    try:
-        baseline_entries = load_baseline_parts(baseline_manifest_path)
-    except RuntimeError as exc:
-        print(f"Warning: {exc}", file=sys.stderr)
-
-    if baseline_entries is not None:
-        baseline_paths = {path for _, path in baseline_entries}
-        for part_path in part_paths:
-            if part_path not in baseline_paths:
-                raise RuntimeError(f"Part not in baseline manifest: {part_path}")
+        part_paths.append(resolve_workdir_path(work_dir, raw, "Part filename"))
 
     validate_part_paths(part_paths)
 
@@ -296,18 +274,22 @@ def assemble_fpf(manifest_path: Path) -> tuple[Path, CompressionStats]:
     except OSError as exc:
         raise RuntimeError(f"Failed to write output file: {output_path}") from exc
 
-    removed_counts: dict[str, int] = {}
-    if baseline_entries is not None:
-        baseline_lines = 0
-        for raw, path in baseline_entries:
-            baseline_lines += count_lines(path)
-            if path not in part_paths:
-                removed_counts[raw] = removed_counts.get(raw, 0) + 1
-    else:
-        baseline_lines = output_lines
+    if baseline_value is None:
+        print(f"Warning: baseline_file missing in manifest: {manifest_path}", file=sys.stderr)
+        return output_path, None
+
+    if not isinstance(baseline_value, str) or not baseline_value:
+        raise RuntimeError(f"Invalid baseline_file entry: {manifest_path}")
+
+    try:
+        baseline_path = resolve_workdir_path(work_dir, baseline_value, "Baseline file")
+        baseline_lines = count_lines(baseline_path)
+    except RuntimeError as exc:
+        print(f"Warning: {exc}", file=sys.stderr)
+        return output_path, None
 
     stats = CompressionStats(
-        removed_counts=removed_counts,
+        removed_counts={},
         original_lines=baseline_lines,
         new_lines=output_lines,
     )
@@ -344,9 +326,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Source URL for FPF-Spec.md.",
     )
     download_parser.add_argument(
-        "--output",
-        default=str(DEFAULT_OUTPUT),
-        help="Destination path for the downloaded spec.",
+        "--work-dir",
+        default=str(DEFAULT_WORK_DIR),
+        help="Directory for the downloaded spec.",
     )
 
     strip_lite_parser = subparsers.add_parser(
@@ -354,14 +336,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Generate the lite compressed spec.",
     )
     strip_lite_parser.add_argument(
-        "--input",
-        default=str(DEFAULT_INPUT),
-        help="Source path for the FPF-Spec.md file.",
-    )
-    strip_lite_parser.add_argument(
-        "--output",
-        default=str(DEFAULT_COMPRESSED_DIR / "FPF-Spec-Lite.md"),
-        help="Output path for the lite compressed spec.",
+        "--work-dir",
+        default=str(DEFAULT_WORK_DIR),
+        help="Working directory for inputs and outputs.",
     )
 
     strip_parser = subparsers.add_parser(
@@ -369,14 +346,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Generate compressed spec files (lite and aggressive).",
     )
     strip_parser.add_argument(
-        "--input",
-        default=str(DEFAULT_INPUT),
-        help="Source path for the FPF-Spec.md file.",
-    )
-    strip_parser.add_argument(
-        "--output-dir",
-        default=str(DEFAULT_COMPRESSED_DIR),
-        help="Directory for compressed outputs.",
+        "--work-dir",
+        default=str(DEFAULT_WORK_DIR),
+        help="Working directory for inputs and outputs.",
     )
 
     strip_aggressive_parser = subparsers.add_parser(
@@ -384,14 +356,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Generate the aggressive compressed spec.",
     )
     strip_aggressive_parser.add_argument(
-        "--input",
-        default=str(DEFAULT_INPUT),
-        help="Source path for the FPF-Spec.md file.",
-    )
-    strip_aggressive_parser.add_argument(
-        "--output",
-        default=str(DEFAULT_COMPRESSED_DIR / "FPF-Spec-Aggressive.md"),
-        help="Output path for the aggressive compressed spec.",
+        "--work-dir",
+        default=str(DEFAULT_WORK_DIR),
+        help="Working directory for inputs and outputs.",
     )
 
     split_parser = subparsers.add_parser(
@@ -399,14 +366,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Split the spec into per-part files.",
     )
     split_parser.add_argument(
-        "--input",
-        default=str(DEFAULT_INPUT),
-        help="Source path for the FPF-Spec.md file.",
-    )
-    split_parser.add_argument(
-        "--output-dir",
-        default=str(DEFAULT_PARTS_DIR),
-        help="Directory for part outputs.",
+        "--work-dir",
+        default=str(DEFAULT_WORK_DIR),
+        help="Working directory for inputs and outputs.",
     )
 
     assemble_parser = subparsers.add_parser(
@@ -416,7 +378,12 @@ def build_parser() -> argparse.ArgumentParser:
     assemble_parser.add_argument(
         "--manifest",
         required=True,
-        help="Path to the YAML manifest file.",
+        help="Manifest filename (located in the working directory).",
+    )
+    assemble_parser.add_argument(
+        "--work-dir",
+        default=str(DEFAULT_WORK_DIR),
+        help="Working directory for inputs and outputs.",
     )
 
     return parser
@@ -427,7 +394,8 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "download":
-        output_path = Path(args.output)
+        work_dir = Path(args.work_dir)
+        output_path = work_dir / DEFAULT_SPEC_NAME
         try:
             download_spec(args.url, output_path)
         except Exception as exc:
@@ -437,33 +405,35 @@ def main(argv: list[str]) -> int:
         return 0
 
     if args.command == "split":
-        input_path = Path(args.input)
-        output_dir = Path(args.output_dir)
+        work_dir = Path(args.work_dir)
+        input_path = work_dir / DEFAULT_SPEC_NAME
+        output_dir = work_dir
         try:
             split_fpf(input_path, output_dir)
         except Exception as exc:
             print(str(exc), file=sys.stderr)
             return 1
-        print(f"Wrote {output_dir / 'FPF-Parts-Manifest.yaml'}")
+        print(f"Wrote {output_dir / DEFAULT_PARTS_MANIFEST}")
         return 0
 
     if args.command == "assemble":
-        manifest_path = Path(args.manifest)
+        work_dir = Path(args.work_dir)
         try:
-            output_path, stats = assemble_fpf(manifest_path)
+            output_path, stats = assemble_fpf(args.manifest, work_dir)
         except Exception as exc:
             print(str(exc), file=sys.stderr)
             return 1
-        print_compression_stats(stats, output_path)
+        if stats is not None:
+            print_compression_stats(stats, output_path)
         return 0
 
     if args.command in {"strip", "strip-lite", "strip-aggressive"}:
-        input_path = Path(args.input)
+        work_dir = Path(args.work_dir)
+        input_path = work_dir / DEFAULT_SPEC_NAME
 
         if args.command == "strip":
-            output_dir = Path(args.output_dir)
-            lite_path = output_dir / "FPF-Spec-Lite.md"
-            aggressive_path = output_dir / "FPF-Spec-Aggressive.md"
+            lite_path = work_dir / DEFAULT_LITE_NAME
+            aggressive_path = work_dir / DEFAULT_AGGRESSIVE_NAME
             lite_stats = compress_fpf(input_path, lite_path, aggressive=False)
             aggressive_stats = compress_fpf(input_path, aggressive_path, aggressive=True)
             print_compression_stats(lite_stats, lite_path)
@@ -473,14 +443,14 @@ def main(argv: list[str]) -> int:
             return 0
 
         if args.command == "strip-lite":
-            output_path = Path(args.output)
+            output_path = work_dir / DEFAULT_LITE_NAME
             stats = compress_fpf(input_path, output_path, aggressive=False)
             print_compression_stats(stats, output_path)
             print(f"Wrote {output_path}")
             return 0
 
         if args.command == "strip-aggressive":
-            output_path = Path(args.output)
+            output_path = work_dir / DEFAULT_AGGRESSIVE_NAME
             stats = compress_fpf(input_path, output_path, aggressive=True)
             print_compression_stats(stats, output_path)
             print(f"Wrote {output_path}")
