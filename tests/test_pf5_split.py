@@ -8,6 +8,21 @@ import fpf
 
 
 class TestPF5Split(unittest.TestCase):
+    def read_manifest_parts(self, manifest_path: Path) -> list[str]:
+        parts = []
+        in_parts = False
+        for line in manifest_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if stripped == "parts:":
+                in_parts = True
+                continue
+            if in_parts:
+                if stripped.startswith("- "):
+                    parts.append(stripped[2:].strip())
+                elif stripped and not stripped.startswith("-"):
+                    break
+        return parts
+
     def test_split_writes_parts_and_manifest(self) -> None:
         with TemporaryDirectory() as tmp_dir:
             input_path = Path(tmp_dir) / "FPF-Spec.md"
@@ -33,12 +48,12 @@ class TestPF5Split(unittest.TestCase):
                         "--output-dir",
                         str(output_dir),
                     ]
-                )
+            )
 
             self.assertEqual(exit_code, 0)
-            manifest_path = output_dir / "FPF-Parts-Manifest.txt"
+            manifest_path = output_dir / "FPF-Parts-Manifest.yaml"
             self.assertTrue(manifest_path.exists())
-            manifest_lines = manifest_path.read_text(encoding="utf-8").splitlines()
+            manifest_lines = self.read_manifest_parts(manifest_path)
             self.assertEqual(
                 manifest_lines,
                 ["FPF-Part-Preface.md", "FPF-Part-A.md", "FPF-Part-B.md"],
@@ -75,11 +90,13 @@ class TestPF5Split(unittest.TestCase):
                 )
 
             self.assertEqual(exit_code, 0)
-            manifest_path = output_dir / "FPF-Parts-Manifest.txt"
+            manifest_path = output_dir / "FPF-Parts-Manifest.yaml"
             self.assertTrue(manifest_path.exists())
-            manifest_lines = manifest_path.read_text(encoding="utf-8").splitlines()
+            manifest_lines = self.read_manifest_parts(manifest_path)
             self.assertGreater(len(manifest_lines), 0)
             self.assertEqual(manifest_lines[0], "FPF-Part-Preface.md")
+            for letter in "ABCDEFGHIJK":
+                self.assertIn(f"FPF-Part-{letter}.md", manifest_lines)
 
             reassembled = b"".join(
                 (output_dir / name).read_bytes() for name in manifest_lines

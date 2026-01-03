@@ -7,6 +7,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
+import yaml
 DEFAULT_SPEC_URL = "https://raw.githubusercontent.com/ailev/FPF/refs/heads/main/FPF-Spec.md"
 DEFAULT_OUTPUT = Path("FPF") / "FPF-Spec.md"
 DEFAULT_INPUT = Path("FPF") / "FPF-Spec.md"
@@ -146,23 +147,20 @@ def split_fpf(input_path: Path, output_dir: Path) -> list[str]:
         except OSError as exc:
             raise RuntimeError(f"Failed to write output file: {path}") from exc
 
-    part_header_pattern = re.compile(r"^#+\s*Part\s+([A-Z])", re.IGNORECASE)
-    bold_part_pattern = re.compile(r"^\s*\*\*Part\s+([A-Z])\b", re.IGNORECASE)
+    part_header_pattern = re.compile(r"^#+\s\**Part\s+([A-Z])", re.IGNORECASE)
     current_name = "FPF-Part-Preface.md"
     manifest.append(current_name)
     current_path = output_dir / current_name
-
     with input_file:
         current_file = open_output(current_path)
         try:
             for line in input_file:
                 normalized_line = normalize_text(line)
                 match = part_header_pattern.match(normalized_line)
-                if match is None:
-                    match = bold_part_pattern.match(normalized_line)
                 if match:
+                    part_id = match.group(1).upper()
                     current_file.close()
-                    current_name = f"FPF-Part-{match.group(1).upper()}.md"
+                    current_name = f"FPF-Part-{part_id}.md"
                     manifest.append(current_name)
                     current_path = output_dir / current_name
                     current_file = open_output(current_path)
@@ -170,9 +168,10 @@ def split_fpf(input_path: Path, output_dir: Path) -> list[str]:
         finally:
             current_file.close()
 
-    manifest_path = output_dir / "FPF-Parts-Manifest.txt"
+    manifest_path = output_dir / "FPF-Parts-Manifest.yaml"
     try:
-        manifest_path.write_text("\n".join(manifest) + "\n", encoding="utf-8")
+        manifest_text = yaml.safe_dump({"parts": manifest}, sort_keys=False)
+        manifest_path.write_text(manifest_text, encoding="utf-8")
     except OSError as exc:
         raise RuntimeError(f"Failed to write output file: {manifest_path}") from exc
 
@@ -299,7 +298,7 @@ def main(argv: list[str]) -> int:
         except Exception as exc:
             print(str(exc), file=sys.stderr)
             return 1
-        print(f"Wrote {output_dir / 'FPF-Parts-Manifest.txt'}")
+        print(f"Wrote {output_dir / 'FPF-Parts-Manifest.yaml'}")
         return 0
 
     if args.command in {"strip", "strip-lite", "strip-aggressive"}:

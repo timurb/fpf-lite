@@ -11,14 +11,13 @@ reassembled or selectively assembled later.
 - `FPF/parts/` (default; configurable via `--output-dir`)
   - `FPF-Part-Preface.md`
   - `FPF-Part-A.md`, `FPF-Part-B.md`, ... (one file per Part header found)
-  - `FPF-Parts-Manifest.txt` (one filename per line, in original order)
+  - `FPF-Parts-Manifest.yaml` (YAML manifest listing the part filenames in
+    original order)
 
 ## Behavior
 - Read the input line-by-line.
 - Treat all content before the first Part header as the Preface.
-- Detect Part headers using a case-insensitive match for `^#+\s*Part\s+([A-Z])`.
-- Also treat bold Part markers as Part headers using a case-insensitive match for
-  `^\s*\*\*Part\s+([A-Z])\b`.
+- Detect Part headers using a case-insensitive match for `^#+\s\**Part\s+([A-Z])`.
 - Normalize header text before matching by replacing:
   - non-breaking hyphen (U+2011) with `-`
   - en dash/em dash with `-`
@@ -26,7 +25,7 @@ reassembled or selectively assembled later.
 - Start a new output file when a new Part header is encountered.
 - Write each part file exactly as it appears in the input, without extra
   separators or modified whitespace.
-- Write `FPF-Parts-Manifest.txt` listing the part filenames in the order
+- Write `FPF-Parts-Manifest.yaml` listing the part filenames in the order
   encountered, starting with `FPF-Part-Preface.md`.
 - Fail with a non-zero exit code and a clear error message if the input does not
   exist or any output cannot be written.
@@ -45,3 +44,4 @@ reassembled or selectively assembled later.
 - The output directory contains one file per part plus the manifest.
 - Concatenating the parts in manifest order reproduces the original input
   byte-for-byte.
+- Parts A through K must be produced from original FPF Spec downloaded from internet (protection from FPF format drift)
