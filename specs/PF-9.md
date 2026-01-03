@@ -1,7 +1,7 @@
-# PF-9 Spec - Manifest Profiles for Common Intents (Pending)
+# PF-9 Spec - Manifest Profiles for Common Intents
 
 ## Status
-- Pending
+- Implemented
 
 ## Summary
 Provide ready-to-use manifest profiles that assemble targeted FPF subsets for
