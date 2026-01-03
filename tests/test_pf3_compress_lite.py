@@ -17,17 +17,17 @@ class TestPF3CompressLite(unittest.TestCase):
         input_path = Path("FPF/FPF-Spec.md")
 
         with TemporaryDirectory() as tmp_dir:
-            output_path = Path(tmp_dir) / "FPF-Spec-Lite.md"
+            work_dir = Path(tmp_dir)
+            (work_dir / "FPF-Spec.md").write_bytes(input_path.read_bytes())
+            output_path = work_dir / "FPF-Spec-Lite.md"
 
             buffer = io.StringIO()
             with redirect_stdout(buffer):
                 exit_code = fpf.main(
                     [
                         "strip-lite",
-                        "--input",
-                        str(input_path),
-                        "--output",
-                        str(output_path),
+                        "--work-dir",
+                        str(work_dir),
                     ]
                 )
 

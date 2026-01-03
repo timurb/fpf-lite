@@ -26,7 +26,7 @@ class FakeResponse:
 class TestPF2Download(unittest.TestCase):
     def test_download_spec_writes_file_and_creates_dir(self) -> None:
         with TemporaryDirectory() as tmp_dir:
-            output_path = Path(tmp_dir) / "FPF" / "FPF-Spec.md"
+            output_path = Path(tmp_dir) / "FPF-Spec.md"
             data = b"spec contents"
 
             with patch(
@@ -41,7 +41,7 @@ class TestPF2Download(unittest.TestCase):
 
     def test_download_spec_http_error_raises(self) -> None:
         with TemporaryDirectory() as tmp_dir:
-            output_path = Path(tmp_dir) / "FPF" / "FPF-Spec.md"
+            output_path = Path(tmp_dir) / "FPF-Spec.md"
 
             with patch(
                 "fpf.urllib.request.urlopen",
@@ -54,7 +54,7 @@ class TestPF2Download(unittest.TestCase):
 
     def test_main_download_command_reports_success(self) -> None:
         with TemporaryDirectory() as tmp_dir:
-            output_path = Path(tmp_dir) / "FPF" / "FPF-Spec.md"
+            output_path = Path(tmp_dir) / "FPF-Spec.md"
             data = b"spec contents"
 
             with patch(
@@ -68,8 +68,8 @@ class TestPF2Download(unittest.TestCase):
                             "download",
                             "--url",
                             "https://example.test/spec.md",
-                            "--output",
-                            str(output_path),
+                            "--work-dir",
+                            str(tmp_dir),
                         ]
                     )
 
@@ -79,7 +79,7 @@ class TestPF2Download(unittest.TestCase):
 
     def test_main_download_command_reports_error(self) -> None:
         with TemporaryDirectory() as tmp_dir:
-            output_path = Path(tmp_dir) / "FPF" / "FPF-Spec.md"
+            output_path = Path(tmp_dir) / "FPF-Spec.md"
 
             with patch(
                 "fpf.urllib.request.urlopen",
@@ -93,8 +93,8 @@ class TestPF2Download(unittest.TestCase):
                             "download",
                             "--url",
                             "https://example.test/spec.md",
-                            "--output",
-                            str(output_path),
+                            "--work-dir",
+                            str(tmp_dir),
                         ]
                     )
 

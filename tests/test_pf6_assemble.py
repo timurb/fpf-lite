@@ -8,10 +8,10 @@ import fpf
 
 
 class TestPF6Assemble(unittest.TestCase):
-    def write_parts(self, parts_dir: Path, content_by_name: dict[str, str]) -> None:
-        parts_dir.mkdir(parents=True, exist_ok=True)
+    def write_parts(self, work_dir: Path, content_by_name: dict[str, str]) -> None:
+        work_dir.mkdir(parents=True, exist_ok=True)
         for name, content in content_by_name.items():
-            (parts_dir / name).write_text(content, encoding="utf-8")
+            (work_dir / name).write_text(content, encoding="utf-8")
 
     def read_manifest_parts(self, manifest_path: Path) -> list[str]:
         parts = []
@@ -30,10 +30,9 @@ class TestPF6Assemble(unittest.TestCase):
 
     def test_assemble_builds_output_and_stats(self) -> None:
         with TemporaryDirectory() as tmp_dir:
-            root = Path(tmp_dir)
-            parts_dir = root / "parts"
+            work_dir = Path(tmp_dir)
             self.write_parts(
-                parts_dir,
+                work_dir,
                 {
                     "FPF-Part-Preface.md": "Preface line 1\n",
                     "FPF-Part-A.md": "# Part A\nA line 1\n",
@@ -41,31 +40,21 @@ class TestPF6Assemble(unittest.TestCase):
                 },
             )
 
-            baseline_manifest = root / "baseline.yaml"
-            baseline_manifest.write_text(
-                "\n".join(
-                    [
-                        "output: full.md",
-                        "parts:",
-                        "  - parts/FPF-Part-Preface.md",
-                        "  - parts/FPF-Part-A.md",
-                        "  - parts/FPF-Part-B.md",
-                        "baseline_manifest: baseline.yaml",
-                    ]
-                )
-                + "\n",
+            baseline_file = work_dir / "baseline.md"
+            baseline_file.write_text(
+                "Preface line 1\n# Part A\nA line 1\n# Part B\nB line 1\n",
                 encoding="utf-8",
             )
 
-            manifest_path = root / "assemble.yaml"
+            manifest_path = work_dir / "assemble.yaml"
             manifest_path.write_text(
                 "\n".join(
                     [
-                        "output: assembled.md",
+                        "output_file: assembled.md",
                         "parts:",
-                        "  - parts/FPF-Part-Preface.md",
-                        "  - parts/FPF-Part-A.md",
-                        "baseline_manifest: baseline.yaml",
+                        "  - FPF-Part-Preface.md",
+                        "  - FPF-Part-A.md",
+                        "baseline_file: baseline.md",
                     ]
                 )
                 + "\n",
@@ -75,14 +64,22 @@ class TestPF6Assemble(unittest.TestCase):
             buffer_out = io.StringIO()
             buffer_err = io.StringIO()
             with redirect_stdout(buffer_out), redirect_stderr(buffer_err):
-                exit_code = fpf.main(["assemble", "--manifest", str(manifest_path)])
+                exit_code = fpf.main(
+                    [
+                        "assemble",
+                        "--manifest",
+                        "assemble.yaml",
+                        "--work-dir",
+                        str(work_dir),
+                    ]
+                )
 
             self.assertEqual(exit_code, 0)
-            output_path = root / "assembled.md"
+            output_path = work_dir / "assembled.md"
             self.assertTrue(output_path.exists())
             expected = (
-                (parts_dir / "FPF-Part-Preface.md").read_text(encoding="utf-8")
-                + (parts_dir / "FPF-Part-A.md").read_text(encoding="utf-8")
+                (work_dir / "FPF-Part-Preface.md").read_text(encoding="utf-8")
+                + (work_dir / "FPF-Part-A.md").read_text(encoding="utf-8")
             )
             self.assertEqual(output_path.read_text(encoding="utf-8"), expected)
 
@@ -93,43 +90,25 @@ class TestPF6Assemble(unittest.TestCase):
                 output,
                 r"Lines:\s+\d+\s+->\s+\d+\s+\(Reduction:\s+\d+(\.\d+)?%\)",
             )
-            self.assertIn("FPF-Part-B.md", output)
 
     def test_assemble_fails_when_part_missing(self) -> None:
         with TemporaryDirectory() as tmp_dir:
-            root = Path(tmp_dir)
-            parts_dir = root / "parts"
+            work_dir = Path(tmp_dir)
             self.write_parts(
-                parts_dir,
+                work_dir,
                 {
                     "FPF-Part-Preface.md": "Preface line 1\n",
                 },
             )
 
-            baseline_manifest = root / "baseline.yaml"
-            baseline_manifest.write_text(
-                "\n".join(
-                    [
-                        "output: full.md",
-                        "parts:",
-                        "  - parts/FPF-Part-Preface.md",
-                        "  - parts/FPF-Part-A.md",
-                        "baseline_manifest: baseline.yaml",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-
-            manifest_path = root / "assemble.yaml"
+            manifest_path = work_dir / "assemble.yaml"
             manifest_path.write_text(
                 "\n".join(
                     [
-                        "output: assembled.md",
+                        "output_file: assembled.md",
                         "parts:",
-                        "  - parts/FPF-Part-Preface.md",
-                        "  - parts/FPF-Part-A.md",
-                        "baseline_manifest: baseline.yaml",
+                        "  - FPF-Part-Preface.md",
+                        "  - FPF-Part-A.md",
                     ]
                 )
                 + "\n",
@@ -139,81 +118,39 @@ class TestPF6Assemble(unittest.TestCase):
             buffer_out = io.StringIO()
             buffer_err = io.StringIO()
             with redirect_stdout(buffer_out), redirect_stderr(buffer_err):
-                exit_code = fpf.main(["assemble", "--manifest", str(manifest_path)])
-
-            self.assertEqual(exit_code, 1)
-            self.assertFalse((root / "assembled.md").exists())
-
-    def test_assemble_fails_when_part_not_in_baseline(self) -> None:
-        with TemporaryDirectory() as tmp_dir:
-            root = Path(tmp_dir)
-            parts_dir = root / "parts"
-            self.write_parts(
-                parts_dir,
-                {
-                    "FPF-Part-Preface.md": "Preface line 1\n",
-                    "FPF-Part-A.md": "# Part A\nA line 1\n",
-                },
-            )
-
-            baseline_manifest = root / "baseline.yaml"
-            baseline_manifest.write_text(
-                "\n".join(
+                exit_code = fpf.main(
                     [
-                        "output: full.md",
-                        "parts:",
-                        "  - parts/FPF-Part-Preface.md",
-                        "baseline_manifest: baseline.yaml",
+                        "assemble",
+                        "--manifest",
+                        "assemble.yaml",
+                        "--work-dir",
+                        str(work_dir),
                     ]
                 )
-                + "\n",
-                encoding="utf-8",
-            )
-
-            manifest_path = root / "assemble.yaml"
-            manifest_path.write_text(
-                "\n".join(
-                    [
-                        "output: assembled.md",
-                        "parts:",
-                        "  - parts/FPF-Part-Preface.md",
-                        "  - parts/FPF-Part-A.md",
-                        "baseline_manifest: baseline.yaml",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-
-            buffer_out = io.StringIO()
-            buffer_err = io.StringIO()
-            with redirect_stdout(buffer_out), redirect_stderr(buffer_err):
-                exit_code = fpf.main(["assemble", "--manifest", str(manifest_path)])
 
             self.assertEqual(exit_code, 1)
-            self.assertFalse((root / "assembled.md").exists())
+            self.assertFalse((work_dir / "assembled.md").exists())
 
     def test_assemble_warns_when_baseline_missing(self) -> None:
         with TemporaryDirectory() as tmp_dir:
-            root = Path(tmp_dir)
-            parts_dir = root / "parts"
+            work_dir = Path(tmp_dir)
             self.write_parts(
-                parts_dir,
+                work_dir,
                 {
                     "FPF-Part-Preface.md": "Preface line 1\n",
                     "FPF-Part-A.md": "# Part A\nA line 1\n",
                 },
             )
 
-            manifest_path = root / "assemble.yaml"
+            manifest_path = work_dir / "assemble.yaml"
             manifest_path.write_text(
                 "\n".join(
                     [
-                        "output: assembled.md",
+                        "output_file: assembled.md",
                         "parts:",
-                        "  - parts/FPF-Part-Preface.md",
-                        "  - parts/FPF-Part-A.md",
-                        "baseline_manifest: missing-baseline.yaml",
+                        "  - FPF-Part-Preface.md",
+                        "  - FPF-Part-A.md",
+                        "baseline_file: missing-baseline.md",
                     ]
                 )
                 + "\n",
@@ -223,19 +160,27 @@ class TestPF6Assemble(unittest.TestCase):
             buffer_out = io.StringIO()
             buffer_err = io.StringIO()
             with redirect_stdout(buffer_out), redirect_stderr(buffer_err):
-                exit_code = fpf.main(["assemble", "--manifest", str(manifest_path)])
+                exit_code = fpf.main(
+                    [
+                        "assemble",
+                        "--manifest",
+                        "assemble.yaml",
+                        "--work-dir",
+                        str(work_dir),
+                    ]
+                )
 
             self.assertEqual(exit_code, 0)
-            output_path = root / "assembled.md"
+            output_path = work_dir / "assembled.md"
             self.assertTrue(output_path.exists())
             expected = (
-                (parts_dir / "FPF-Part-Preface.md").read_text(encoding="utf-8")
-                + (parts_dir / "FPF-Part-A.md").read_text(encoding="utf-8")
+                (work_dir / "FPF-Part-Preface.md").read_text(encoding="utf-8")
+                + (work_dir / "FPF-Part-A.md").read_text(encoding="utf-8")
             )
             self.assertEqual(output_path.read_text(encoding="utf-8"), expected)
             output = (buffer_out.getvalue() + buffer_err.getvalue()).lower()
             self.assertIn("warning", output)
-            self.assertIn("stats for", output)
+            self.assertNotIn("stats for", output)
 
     @unittest.skipUnless(
         Path("FPF/FPF-Spec.md").exists(),
@@ -245,8 +190,8 @@ class TestPF6Assemble(unittest.TestCase):
         input_path = Path("FPF/FPF-Spec.md")
 
         with TemporaryDirectory() as tmp_dir:
-            root = Path(tmp_dir)
-            parts_dir = root / "parts"
+            work_dir = Path(tmp_dir)
+            (work_dir / "FPF-Spec.md").write_bytes(input_path.read_bytes())
 
             buffer_out = io.StringIO()
             buffer_err = io.StringIO()
@@ -254,35 +199,22 @@ class TestPF6Assemble(unittest.TestCase):
                 split_exit = fpf.main(
                     [
                         "split",
-                        "--input",
-                        str(input_path),
-                        "--output-dir",
-                        str(parts_dir),
+                        "--work-dir",
+                        str(work_dir),
                     ]
                 )
 
             self.assertEqual(split_exit, 0)
-            manifest_path = parts_dir / "FPF-Parts-Manifest.yaml"
+            manifest_path = work_dir / "FPF-Parts-Manifest.yaml"
             manifest_lines = self.read_manifest_parts(manifest_path)
             self.assertGreater(len(manifest_lines), 0)
 
-            baseline_manifest = root / "baseline.yaml"
-            baseline_manifest.write_text(
-                "\n".join(
-                    ["output: full.md", "parts:"]
-                    + [f"  - parts/{name}" for name in manifest_lines]
-                    + ["baseline_manifest: baseline.yaml"]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-
-            assemble_manifest = root / "assemble.yaml"
+            assemble_manifest = work_dir / "assemble.yaml"
             assemble_manifest.write_text(
                 "\n".join(
-                    ["output: assembled.md", "parts:"]
-                    + [f"  - parts/{name}" for name in manifest_lines]
-                    + ["baseline_manifest: baseline.yaml"]
+                    ["output_file: assembled.md", "parts:"]
+                    + [f"  - {name}" for name in manifest_lines]
+                    + ["baseline_file: FPF-Spec.md"]
                 )
                 + "\n",
                 encoding="utf-8",
@@ -292,13 +224,19 @@ class TestPF6Assemble(unittest.TestCase):
             buffer_err = io.StringIO()
             with redirect_stdout(buffer_out), redirect_stderr(buffer_err):
                 assemble_exit = fpf.main(
-                    ["assemble", "--manifest", str(assemble_manifest)]
+                    [
+                        "assemble",
+                        "--manifest",
+                        "assemble.yaml",
+                        "--work-dir",
+                        str(work_dir),
+                    ]
                 )
 
             self.assertEqual(assemble_exit, 0)
-            output_path = root / "assembled.md"
+            output_path = work_dir / "assembled.md"
             self.assertTrue(output_path.exists())
-            self.assertEqual(output_path.read_bytes(), input_path.read_bytes())
+            self.assertEqual(output_path.read_bytes(), (work_dir / "FPF-Spec.md").read_bytes())
 
 
 if __name__ == "__main__":
