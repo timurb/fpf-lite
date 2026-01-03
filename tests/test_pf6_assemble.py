@@ -182,6 +182,109 @@ class TestPF6Assemble(unittest.TestCase):
             self.assertIn("warning", output)
             self.assertNotIn("stats for", output)
 
+    def test_assemble_manifest_path_uses_manifest_dir_when_no_work_dir(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            manifest_dir = Path(tmp_dir) / "manifest"
+            self.write_parts(
+                manifest_dir,
+                {
+                    "FPF-Part-Preface.md": "Preface line 1\n",
+                    "FPF-Part-A.md": "# Part A\nA line 1\n",
+                },
+            )
+
+            baseline_file = manifest_dir / "baseline.md"
+            baseline_file.write_text(
+                "Preface line 1\n# Part A\nA line 1\n",
+                encoding="utf-8",
+            )
+
+            manifest_path = manifest_dir / "assemble.yaml"
+            manifest_path.write_text(
+                "\n".join(
+                    [
+                        "output_file: assembled.md",
+                        "parts:",
+                        "  - FPF-Part-Preface.md",
+                        "  - FPF-Part-A.md",
+                        "baseline_file: baseline.md",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            buffer_out = io.StringIO()
+            buffer_err = io.StringIO()
+            with redirect_stdout(buffer_out), redirect_stderr(buffer_err):
+                exit_code = fpf.main(
+                    [
+                        "assemble",
+                        "--manifest",
+                        str(manifest_path),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            output_path = manifest_dir / "assembled.md"
+            self.assertTrue(output_path.exists())
+            output = (buffer_out.getvalue() + buffer_err.getvalue()).lower()
+            self.assertIn("warning", output)
+
+    def test_assemble_manifest_path_with_work_dir_warns_and_uses_work_dir(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            base_dir = Path(tmp_dir)
+            manifest_dir = base_dir / "manifest"
+            work_dir = base_dir / "work"
+            self.write_parts(
+                work_dir,
+                {
+                    "FPF-Part-Preface.md": "Preface line 1\n",
+                    "FPF-Part-A.md": "# Part A\nA line 1\n",
+                },
+            )
+
+            baseline_file = work_dir / "baseline.md"
+            baseline_file.write_text(
+                "Preface line 1\n# Part A\nA line 1\n",
+                encoding="utf-8",
+            )
+
+            manifest_path = manifest_dir / "assemble.yaml"
+            manifest_path.parent.mkdir(parents=True, exist_ok=True)
+            manifest_path.write_text(
+                "\n".join(
+                    [
+                        "output_file: assembled.md",
+                        "parts:",
+                        "  - FPF-Part-Preface.md",
+                        "  - FPF-Part-A.md",
+                        "baseline_file: baseline.md",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            buffer_out = io.StringIO()
+            buffer_err = io.StringIO()
+            with redirect_stdout(buffer_out), redirect_stderr(buffer_err):
+                exit_code = fpf.main(
+                    [
+                        "assemble",
+                        "--manifest",
+                        str(manifest_path),
+                        "--work-dir",
+                        str(work_dir),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            output_path = work_dir / "assembled.md"
+            self.assertTrue(output_path.exists())
+            output = buffer_out.getvalue() + buffer_err.getvalue()
+            self.assertGreaterEqual(output.count("Warning"), 2)
+
     @unittest.skipUnless(
         Path("FPF/FPF-Spec.md").exists(),
         "Requires FPF/FPF-Spec.md. Run `./fpf.py download` first.",

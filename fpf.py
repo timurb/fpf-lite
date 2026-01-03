@@ -230,10 +230,7 @@ def validate_part_paths(part_paths: list[Path]) -> None:
             raise RuntimeError(f"Failed to read part file: {part_path}") from exc
 
 
-def assemble_fpf(
-    manifest_name: str, work_dir: Path
-) -> tuple[Path, CompressionStats | None]:
-    manifest_path = resolve_workdir_path(work_dir, manifest_name, "Manifest name")
+def assemble_fpf(manifest_path: Path, work_dir: Path) -> tuple[Path, CompressionStats | None]:
     data = load_yaml_manifest(manifest_path)
     output_value = data.get("output_file")
     parts_value = data.get("parts")
@@ -327,7 +324,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     download_parser.add_argument(
         "--work-dir",
-        default=str(DEFAULT_WORK_DIR),
+        default=None,
         help="Directory for the downloaded spec.",
     )
 
@@ -337,7 +334,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     strip_lite_parser.add_argument(
         "--work-dir",
-        default=str(DEFAULT_WORK_DIR),
+        default=None,
         help="Working directory for inputs and outputs.",
     )
 
@@ -347,7 +344,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     strip_parser.add_argument(
         "--work-dir",
-        default=str(DEFAULT_WORK_DIR),
+        default=None,
         help="Working directory for inputs and outputs.",
     )
 
@@ -357,7 +354,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     strip_aggressive_parser.add_argument(
         "--work-dir",
-        default=str(DEFAULT_WORK_DIR),
+        default=None,
         help="Working directory for inputs and outputs.",
     )
 
@@ -367,7 +364,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     split_parser.add_argument(
         "--work-dir",
-        default=str(DEFAULT_WORK_DIR),
+        default=None,
         help="Working directory for inputs and outputs.",
     )
 
@@ -378,11 +375,11 @@ def build_parser() -> argparse.ArgumentParser:
     assemble_parser.add_argument(
         "--manifest",
         required=True,
-        help="Manifest filename (located in the working directory).",
+        help="Manifest filename in the working directory or a path to the manifest.",
     )
     assemble_parser.add_argument(
         "--work-dir",
-        default=str(DEFAULT_WORK_DIR),
+        default=None,
         help="Working directory for inputs and outputs.",
     )
 
@@ -394,7 +391,7 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "download":
-        work_dir = Path(args.work_dir)
+        work_dir = Path(args.work_dir) if args.work_dir else DEFAULT_WORK_DIR
         output_path = work_dir / DEFAULT_SPEC_NAME
         try:
             download_spec(args.url, output_path)
@@ -405,7 +402,7 @@ def main(argv: list[str]) -> int:
         return 0
 
     if args.command == "split":
-        work_dir = Path(args.work_dir)
+        work_dir = Path(args.work_dir) if args.work_dir else DEFAULT_WORK_DIR
         input_path = work_dir / DEFAULT_SPEC_NAME
         output_dir = work_dir
         try:
@@ -417,9 +414,31 @@ def main(argv: list[str]) -> int:
         return 0
 
     if args.command == "assemble":
-        work_dir = Path(args.work_dir)
+        manifest_value = Path(args.manifest)
+        manifest_has_path = manifest_value.is_absolute() or manifest_value.name != args.manifest
+        if manifest_has_path:
+            if args.work_dir:
+                work_dir = Path(args.work_dir)
+                print(
+                    f"Warning: manifest path provided; using CLI work-dir {work_dir}",
+                    file=sys.stderr,
+                )
+                print(
+                    f"Warning: manifest read from path {manifest_value}",
+                    file=sys.stderr,
+                )
+            else:
+                work_dir = manifest_value.parent
+                print(
+                    f"Warning: manifest path provided; using manifest directory {work_dir}",
+                    file=sys.stderr,
+                )
+            manifest_path = manifest_value
+        else:
+            work_dir = Path(args.work_dir) if args.work_dir else DEFAULT_WORK_DIR
+            manifest_path = work_dir / manifest_value
         try:
-            output_path, stats = assemble_fpf(args.manifest, work_dir)
+            output_path, stats = assemble_fpf(manifest_path, work_dir)
         except Exception as exc:
             print(str(exc), file=sys.stderr)
             return 1
@@ -428,7 +447,7 @@ def main(argv: list[str]) -> int:
         return 0
 
     if args.command in {"strip", "strip-lite", "strip-aggressive"}:
-        work_dir = Path(args.work_dir)
+        work_dir = Path(args.work_dir) if args.work_dir else DEFAULT_WORK_DIR
         input_path = work_dir / DEFAULT_SPEC_NAME
 
         if args.command == "strip":
