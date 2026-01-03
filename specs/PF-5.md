@@ -1,5 +1,8 @@
 # PF-5 Spec - Split Spec Into Parts (On Disk)
 
+## Status
+- Implemented
+
 ## Summary
 Split the canonical FPF spec into per-part files on disk so the parts can be
 reassembled or selectively assembled later.

@@ -1,5 +1,8 @@
 # Feature Description - FPF Specification Tooling
 
+## Status
+- Implemented
+
 ## Summary
 This repository provides small, local tooling to manage the large FPF
 specification file so it can fit within LLM context limits. The toolset
@@ -20,6 +23,10 @@ into logical modules that can be loaded on demand.
   for further assembly into a compressed variant.
 - PF-6 ([specs/PF-6.md](PF-6.md)) Assemble a spec with a reduced number of
   parts according to a user-defined list of parts.
+- PF-7 ([specs/PF-7.md](PF-7.md)) Normalize typographics in the spec into a
+  standard ASCII form. (Pending)
+- PF-8 ([specs/PF-8.md](PF-8.md)) Verify the spec for typographic violations and
+  fail if any are found. (Pending)
 
 ## User Problems Addressed
 - UP-1 The full spec is too large for typical LLM context windows, causing

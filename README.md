@@ -1,89 +1,66 @@
 # FPF Specification Tooling
 
-This repository contains utilities for managing the **First Principles Framework (FPF)** specification (`FPF-Spec.md`).
+This repository provides small, local tooling to manage the **First Principles Framework (FPF)** specification (`FPF-Spec.md`) so it fits within LLM context limits.
 
 The full specification is approximately **1,000,000 tokens**. This size challenges even large-context LLMs (Gemini 1.5 Pro, GPT-4 Turbo), causing `resource_exhausted` errors, increased costs, and "Lost in the Middle" attention degradation.
 
-These tools provide two strategies to solve this: **Semantic Compression** and **Modular Splitting**.
+The toolset supports two workflows:
+- semantic compression (lite and aggressive)
+- modular splitting and assembly
 
----
+## Features (PF-1 to PF-6)
+- **PF-1** CLI interface for interaction and automation.
+- **PF-2** Download the canonical `FPF-Spec.md` into `FPF/FPF-Spec.md`.
+- **PF-3** Produce a lite compressed variant that removes non-normative sections.
+- **PF-4** Produce an aggressive compressed variant for strict validation/codegen.
+- **PF-5** Split the spec into per-part files with a YAML manifest.
+- **PF-6** Assemble a spec from a manifest-defined part list, with stats output.
 
-## 🛠 Tools
+## Requirements
+- Python 3.10+
 
-### 1. Semantic Compressor (`fpf_compress.py`)
+## CLI Usage
 
-**Strategy:** Increases *instruction density* by stripping non-normative text.
-
-*   **Input:** `FPF-Spec.md`
-*   **Output:** `FPF-Spec-Compressed.md`
-*   **What it does:** Removes introductory essays (Preface), historical context (SoTA-Echoing), and table of contents.
-*   **Modes:**
-    *   `AGGRESSIVE_MODE = False` (Default): Removes Preface/SoTA. Reduces size by ~25%. Good for general context.
-    *   `AGGRESSIVE_MODE = True`: Removes `Problem`, `Forces`, and `Rationale` sections. Leaves only `Solution` and `Conformance Checklists`. Reduces size by ~50%. Best for strict code generation or validation tasks.
-
-### 2. Modular Splitter (`fpf_split.py`)
-
-**Strategy:** Logic-aware splitting based on the FPF "Hourglass Architecture". It allows you to load only the specific layers relevant to your task.
-
-*   **Input:** `FPF-Spec.md`
-*   **Output:** Three logical modules.
-*   **Integrity:** Includes a self-test that reconstructs the file in memory and verifies it byte-for-byte against the source before writing modules.
-
-| Module File | Content | Context | Use Case |
-| :--- | :--- | :--- | :--- |
-| **`FPF-Module-Kernel.md`** | **Preface, Part A, Part E** | **Mandatory** | The Core. Defines Ontology, Roles, and Lexicon (`E.10`). Always include this to set the model's "operating system" and speaking style. |
-| **`FPF-Module-Logic.md`** | **Part B, Part F** | **Optional** | The Engine. Defines Reasoning cycles, Trust calculus (`B.3`), and Unification/Bridging (`F.9`). Load for complex reasoning tasks. |
-| **`FPF-Module-Domain.md`** | **Part C, D, G, Appendices** | **On Demand** | The Library. Specific Architheories (Creativity, Ethics, SoTA). Load only when specific domain definitions are needed. |
-
----
-
-## 🚀 Usage
-
-### Requirements
-*   Python 3.x
-
-### Execution
-1.  Clone the repository
-2.  Run the command:
-
+### Download the spec (PF-2)
 ```bash
-python fpf-lite/fpf_compressor.py
+./fpf.py download
+./fpf.py download --url <spec-url> --output <path>
 ```
 
-3.  The script will create 2 files: `FPF-Spec-Lite.md` (Removes only Preface and SoTA) and `FPF-Spec-Aggressive.md` (Also removes Problem, Forces, Rationale. Leaves only dry rules).
-
-4. Alternative: Generate the modular splits
+### Compress the spec (PF-3 / PF-4)
 ```bash
-python fpf_split.py
+./fpf.py strip
+./fpf.py strip-lite --input FPF/FPF-Spec.md --output FPF/FPF-Spec-Lite.md
+./fpf.py strip-aggressive --input FPF/FPF-Spec.md --output FPF/FPF-Spec-Aggressive.md
 ```
 
----
+Default outputs:
+- `FPF/FPF-Spec-Lite.md`
+- `FPF/FPF-Spec-Aggressive.md`
 
-## 🧠 Prompt Engineering Strategy
+### Split into parts (PF-5)
+```bash
+./fpf.py split
+./fpf.py split --input FPF/FPF-Spec.md --output-dir FPF/parts
+```
 
-How to construct your System Prompt based on your goal:
+Default outputs:
+- `FPF/parts/FPF-Part-Preface.md`
+- `FPF/parts/FPF-Part-A.md`, `FPF/parts/FPF-Part-B.md`, ...
+- `FPF/parts/FPF-Parts-Manifest.yaml`
 
-### Scenario A: "Act as an FPF Expert" (General Chat)
-*   **Goal:** General Q&A, style mimicking.
-*   **Files:** `FPF-Spec-Compressed.md`
-*   **Why:** The compressed file fits in context and retains enough "flavor" for chat.
+### Assemble from parts (PF-6)
+```bash
+./fpf.py assemble --manifest <manifest-path>
+```
 
-### Scenario B: "Validate this Architecture" (Reasoning)
-*   **Goal:** Deep reasoning, checking against rules, finding contradictions.
-*   **Files:** `FPF-Module-Kernel.md` + `FPF-Module-Logic.md`
-*   **Why:** You need the full Rationale and Forces (which compression might strip) to understand *why* a rule exists, but you don't need the specific definitions of "Creativity" or "Ethics" (Domain module).
+Manifest format (YAML, minimal subset):
+```yaml
+output: FPF/FPF-Spec-Custom.md
+parts:
+  - FPF-Part-Preface.md
+  - FPF-Part-A.md
+baseline_manifest: FPF/parts/FPF-Parts-Manifest.yaml
+```
 
-### Scenario C: "Design a Metric" (Domain Specific)
-*   **Goal:** Creating specific artifacts using Part C/G patterns.
-*   **Files:** `FPF-Module-Kernel.md` + `FPF-Module-Domain.md`
-*   **Why:** You need the Lexicon (Kernel) and the specific Metric templates (Domain).
-
----
-
-## ⚠️ Notes on `SoTA-Echoing` Removal
-The `fpf_compress.py` script uses a smart filter to remove "State of the Art" historical comparisons (which are noise for the LLM) while preserving normative requirements regarding SoTA (e.g., in `G.2` or `E.15`). It handles non-breaking hyphens (`\u2011`) used in the spec text.
-
-## TODOs
-
- - [ ] Combine the modular split and compressed version into a single workflow.
- - [ ] Implement splitting into parts in text files and then recombining them (this was original intent but LLM did that in memory)
+Paths can be absolute or relative to the manifest file directory.

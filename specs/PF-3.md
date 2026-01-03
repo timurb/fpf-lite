@@ -1,5 +1,8 @@
 # PF-3 Spec - Semantic Compression (Lite)
 
+## Status
+- Implemented
+
 ## Summary
 Produce a compressed version of the FPF specification by removing
 non-normative sections while preserving rules and checklists.

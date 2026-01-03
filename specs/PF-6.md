@@ -1,5 +1,8 @@
 # PF-6 Spec - Assemble Spec From Parts (Manifest-Driven)
 
+## Status
+- Implemented
+
 ## Summary
 Assemble a spec file from a user-provided YAML manifest that lists the output
 filename and the ordered part files to include.

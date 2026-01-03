@@ -1,5 +1,8 @@
 # PF-4 Spec - Semantic Compression (Aggressive)
 
+## Status
+- Implemented
+
 ## Summary
 Produce an aggressive compressed version of the FPF specification that keeps
 only normative content needed for strict validation or code generation.

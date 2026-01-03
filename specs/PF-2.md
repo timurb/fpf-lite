@@ -1,5 +1,8 @@
 # PF-2 Spec - Download Canonical FPF Spec
 
+## Status
+- Implemented
+
 ## Summary
 Download the canonical `FPF-Spec.md` from the upstream GitHub source into the
 local `FPF/` directory.
