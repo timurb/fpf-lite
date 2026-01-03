@@ -27,7 +27,7 @@ into logical modules that can be loaded on demand.
   standard ASCII form. (Pending)
 - PF-8 ([specs/PF-8.md](PF-8.md)) Verify the spec for typographic violations and
   fail if any are found. (Pending)
-- PF-9 Create manifest templates for common intents (SoTA harvesting,
+- PF-9 Create manifest profiles for common intents (SoTA harvesting,
   architecture design, tradeoff evaluation). (Pending)
 
 ## User Problems Addressed

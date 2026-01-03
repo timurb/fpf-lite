@@ -15,6 +15,7 @@ DEFAULT_SPEC_NAME = "FPF-Spec.md"
 DEFAULT_LITE_NAME = "FPF-Spec-Lite.md"
 DEFAULT_AGGRESSIVE_NAME = "FPF-Spec-Aggressive.md"
 DEFAULT_PARTS_MANIFEST = "FPF-Parts-Manifest.yaml"
+DEFAULT_PROFILES_DIR = Path("profiles")
 
 
 @dataclass(frozen=True)
@@ -190,6 +191,15 @@ def resolve_workdir_path(work_dir: Path, value: str, label: str) -> Path:
     return (work_dir / path).resolve(strict=False)
 
 
+def resolve_profile_path(profile_value: str, profiles_dir: Path) -> Path:
+    path = Path(profile_value)
+    if path.is_absolute() or path.name != profile_value:
+        return path
+    if path.suffix:
+        return profiles_dir / path
+    return profiles_dir / f"{profile_value}.yaml"
+
+
 def load_yaml_manifest(manifest_path: Path) -> dict[str, object]:
     try:
         text = manifest_path.read_text(encoding="utf-8")
@@ -237,9 +247,13 @@ def assemble_fpf(manifest_path: Path, work_dir: Path) -> tuple[Path, Compression
     baseline_value = data.get("baseline_file")
 
     if not isinstance(output_value, str) or not output_value:
-        raise RuntimeError(f"Manifest missing output_file: {manifest_path}")
+        raise RuntimeError(
+            f"Manifest file {manifest_path} is missing required field: output_file"
+        )
     if not isinstance(parts_value, list):
-        raise RuntimeError(f"Manifest missing parts list: {manifest_path}")
+        raise RuntimeError(
+            f"Manifest file {manifest_path} is missing required field: parts"
+        )
 
     output_path = resolve_workdir_path(work_dir, output_value, "Output file")
     part_paths = []
@@ -372,15 +386,24 @@ def build_parser() -> argparse.ArgumentParser:
         "assemble",
         help="Assemble a spec from a YAML manifest.",
     )
-    assemble_parser.add_argument(
+    assemble_manifest_group = assemble_parser.add_mutually_exclusive_group(required=True)
+    assemble_manifest_group.add_argument(
         "--manifest",
-        required=True,
         help="Manifest filename in the working directory or a path to the manifest.",
+    )
+    assemble_manifest_group.add_argument(
+        "--profile",
+        help="Profile name, filename, or path to the profile manifest. (Experimental). See profiles/ for available profiles.",
     )
     assemble_parser.add_argument(
         "--work-dir",
         default=None,
         help="Working directory for inputs and outputs.",
+    )
+    assemble_parser.add_argument(
+        "--profiles-dir",
+        default=None,
+        help="Directory for profile manifests.",
     )
 
     return parser
@@ -414,29 +437,34 @@ def main(argv: list[str]) -> int:
         return 0
 
     if args.command == "assemble":
-        manifest_value = Path(args.manifest)
-        manifest_has_path = manifest_value.is_absolute() or manifest_value.name != args.manifest
-        if manifest_has_path:
-            if args.work_dir:
-                work_dir = Path(args.work_dir)
-                print(
-                    f"Warning: manifest path provided; using CLI work-dir {work_dir}",
-                    file=sys.stderr,
-                )
-                print(
-                    f"Warning: manifest read from path {manifest_value}",
-                    file=sys.stderr,
-                )
-            else:
-                work_dir = manifest_value.parent
-                print(
-                    f"Warning: manifest path provided; using manifest directory {work_dir}",
-                    file=sys.stderr,
-                )
-            manifest_path = manifest_value
+        work_dir = Path(args.work_dir) if args.work_dir else DEFAULT_WORK_DIR
+        if args.profile:
+            profiles_dir = Path(args.profiles_dir) if args.profiles_dir else DEFAULT_PROFILES_DIR
+            manifest_path = resolve_profile_path(args.profile, profiles_dir)
         else:
-            work_dir = Path(args.work_dir) if args.work_dir else DEFAULT_WORK_DIR
-            manifest_path = work_dir / manifest_value
+            manifest_value = Path(args.manifest)
+            manifest_has_path = (
+                manifest_value.is_absolute() or manifest_value.name != args.manifest
+            )
+            if manifest_has_path:
+                if args.work_dir:
+                    print(
+                        f"Warning: manifest path provided; using CLI work-dir {work_dir}",
+                        file=sys.stderr,
+                    )
+                    print(
+                        f"Warning: manifest read from path {manifest_value}",
+                        file=sys.stderr,
+                    )
+                else:
+                    work_dir = manifest_value.parent
+                    print(
+                        f"Warning: manifest path provided; using manifest directory {work_dir}",
+                        file=sys.stderr,
+                    )
+                manifest_path = manifest_value
+            else:
+                manifest_path = work_dir / manifest_value
         try:
             output_path, stats = assemble_fpf(manifest_path, work_dir)
         except Exception as exc:

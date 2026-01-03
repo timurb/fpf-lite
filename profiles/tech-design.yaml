@@ -1,0 +1,36 @@
+# This profile is best suited for architecture and tech design
+#
+# Parts EXCLUDED from the shortened spec:
+#   - Preface
+#   - Part D: Ethics & Conflict-Optimisation
+#   - Part G: SoTA Harvester, Parity Harness, Telemetry
+#   - Parts H-K: stubs (may return later)
+#
+# Parts REQUIRED in final spec:
+#   - Part A: Kernel
+#   - Part B: Reasoning
+#   - Part E: Authoring
+#   - Part F: Unification Suite
+#
+# Parts NOT REQUIRED in final spec:
+#   - Part C: Architheory Specifications
+
+parts:
+- FPF-Part-A.md
+- FPF-Part-B.md
+- FPF-Part-E.md
+- FPF-Part-F.md
+baseline_file: FPF-Spec.md
+output_file: FPF-Architecture.md
+
+# Chapters to further delete if needed (no support for more detailed cleanups than with Parts):
+#
+# A.0: Onboarding Glossary (NQD & E/E-LOG).
+# C.17, C.18, C.19: Creativity-CHR, NQD-CAL, E/E-LOG
+# B.5.2.1: Creative Abduction with NQD
+# C.20 — C.23
+
+# B.1 Universal Algebra of Aggregation
+# B.2 Meta-Holon Transition
+
+

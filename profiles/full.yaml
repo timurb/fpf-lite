@@ -1,0 +1,17 @@
+# Supposed to be reassemble of full FPF as is
+
+parts:
+- FPF-Part-Preface.md
+- FPF-Part-A.md
+- FPF-Part-B.md
+- FPF-Part-C.md
+- FPF-Part-D.md
+- FPF-Part-E.md
+- FPF-Part-F.md
+- FPF-Part-G.md
+- FPF-Part-H.md
+- FPF-Part-I.md
+- FPF-Part-J.md
+- FPF-Part-K.md
+baseline_file: FPF-Spec.md
+output_file: FPF-Full.md
