@@ -31,8 +31,8 @@ non-normative sections while preserving rules and checklists.
   line reduction.
 
 ## Invocation
-- `./fpf.py strip-lite`
-- `./fpf.py strip-lite --work-dir <dir>`
+- `./fpf-cli strip-lite`
+- `./fpf-cli strip-lite --work-dir <dir>`
 
 ## Constraints
 - Operate line-by-line without loading the full file into memory.

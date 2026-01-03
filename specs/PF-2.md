@@ -19,8 +19,8 @@ local work directory (default `FPF/`).
 - Fail with a non-zero exit code and a clear error message on download errors.
 
 ## Invocation
-- `./fpf.py download`
-- `./fpf.py download --url <spec-url> --work-dir <dir>`
+- `./fpf-cli download`
+- `./fpf-cli download --url <spec-url> --work-dir <dir>`
 
 ## Constraints
 - Use Python standard library networking for the main script.

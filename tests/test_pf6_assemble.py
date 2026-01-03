@@ -287,7 +287,7 @@ class TestPF6Assemble(unittest.TestCase):
 
     @unittest.skipUnless(
         Path("FPF/FPF-Spec.md").exists(),
-        "Requires FPF/FPF-Spec.md. Run `./fpf.py download` first.",
+        "Requires FPF/FPF-Spec.md. Run `./fpf-cli download` first.",
     )
     def test_assemble_all_parts_matches_spec(self) -> None:
         input_path = Path("FPF/FPF-Spec.md")

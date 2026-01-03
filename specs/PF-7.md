@@ -34,10 +34,10 @@ ASCII form.
 - If both `--output` and `--in-place` are provided just produce a warning on ambivalent usage of params and work as usual.
 
 ## Invocation
-- `./fpf.py normalize-typographics`
-- `./fpf.py normalize-typographics --work-dir <dir>`
-- `./fpf.py normalize-typographics --input <filename> --output <filename> --work-dir <dir>`
-- `./fpf.py normalize-typographics --input <filename> --in-place --work-dir <dir>`
+- `./fpf-cli normalize-typographics`
+- `./fpf-cli normalize-typographics --work-dir <dir>`
+- `./fpf-cli normalize-typographics --input <filename> --output <filename> --work-dir <dir>`
+- `./fpf-cli normalize-typographics --input <filename> --in-place --work-dir <dir>`
 
 ## Constraints
 - Do not load entire input into memory.

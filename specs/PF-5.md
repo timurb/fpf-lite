@@ -35,8 +35,8 @@ reassembled or selectively assembled later.
   exist or any output cannot be written.
 
 ## Invocation
-- `./fpf.py split`
-- `./fpf.py split --work-dir <dir>`
+- `./fpf-cli split`
+- `./fpf-cli split --work-dir <dir>`
 
 ## Constraints
 - Reuse normalization function across all features

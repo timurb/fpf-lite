@@ -51,7 +51,7 @@ Top-level YAML mapping with:
 - Reject absolute paths inside the manifest.
 
 ## Invocation
-- `./fpf.py assemble --manifest <manifest-name> --work-dir <dir>`
+- `./fpf-cli assemble --manifest <manifest-name> --work-dir <dir>`
 
 ## Constraints
 - Do not modify part files.

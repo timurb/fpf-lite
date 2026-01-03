@@ -322,7 +322,7 @@ def download_spec(url: str, output_path: Path) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="fpf",
+        prog="fpf-cli",
         description="FPF specification tooling CLI.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)

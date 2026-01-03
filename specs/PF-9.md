@@ -27,7 +27,7 @@ evaluation.
 - `output_file` inside the profile is resolved relative to `--work-dir`.
 
 ## Invocation
-- `./fpf.py assemble --profile <profile> --work-dir <dir> --profiles-dir <dir>`
+- `./fpf-cli assemble --profile <profile> --work-dir <dir> --profiles-dir <dir>`
 
 ## Constraints
 - Do not modify existing part files.
@@ -36,4 +36,4 @@ evaluation.
 
 ## Success Criteria
 - Profile files exist and are valid PF-6 manifests.
-- Each profile assembles successfully via `./fpf.py assemble --profile <profile-name>`.
+- Each profile assembles successfully via `./fpf-cli assemble --profile <profile-name>`.

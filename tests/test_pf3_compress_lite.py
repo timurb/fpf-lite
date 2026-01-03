@@ -11,7 +11,7 @@ import fpf
 class TestPF3CompressLite(unittest.TestCase):
     @unittest.skipUnless(
         Path("FPF/FPF-Spec.md").exists(),
-        "Requires FPF/FPF-Spec.md. Run `./fpf.py download` first.",
+        "Requires FPF/FPF-Spec.md. Run `./fpf-cli download` first.",
     )
     def test_compress_lite_real_spec(self) -> None:
         input_path = Path("FPF/FPF-Spec.md")

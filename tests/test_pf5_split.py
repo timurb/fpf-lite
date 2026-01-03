@@ -76,7 +76,7 @@ class TestPF5Split(unittest.TestCase):
 
     @unittest.skipUnless(
         Path("FPF/FPF-Spec.md").exists(),
-        "Requires FPF/FPF-Spec.md. Run `./fpf.py download` first.",
+        "Requires FPF/FPF-Spec.md. Run `./fpf-cli download` first.",
     )
     def test_split_real_spec_reassembles(self) -> None:
         input_path = Path("FPF/FPF-Spec.md")

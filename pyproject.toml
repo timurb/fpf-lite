@@ -14,4 +14,4 @@ dependencies = ["PyYAML>=6.0"]
 dev = ["pytest"]
 
 [tool.setuptools]
-py-modules = ["fpf", "fpf_compressor", "fpf_split"]
+py-modules = ["fpf", "fpf_compressor"]

@@ -23,15 +23,15 @@ The toolset supports two workflows:
 
 ### Download the spec (PF-2)
 ```bash
-./fpf.py download
-./fpf.py download --url <spec-url> --output <path>
+./fpf-cli download
+./fpf-cli download --url <spec-url> --output <path>
 ```
 
 ### Compress the spec (PF-3 / PF-4)
 ```bash
-./fpf.py strip
-./fpf.py strip-lite --input FPF/FPF-Spec.md --output FPF/FPF-Spec-Lite.md
-./fpf.py strip-aggressive --input FPF/FPF-Spec.md --output FPF/FPF-Spec-Aggressive.md
+./fpf-cli strip
+./fpf-cli strip-lite --input FPF/FPF-Spec.md --output FPF/FPF-Spec-Lite.md
+./fpf-cli strip-aggressive --input FPF/FPF-Spec.md --output FPF/FPF-Spec-Aggressive.md
 ```
 
 Default outputs:
@@ -40,8 +40,8 @@ Default outputs:
 
 ### Split into parts (PF-5)
 ```bash
-./fpf.py split
-./fpf.py split --input FPF/FPF-Spec.md --output-dir FPF/parts
+./fpf-cli split
+./fpf-cli split --input FPF/FPF-Spec.md --output-dir FPF/parts
 ```
 
 Default outputs:
@@ -51,7 +51,7 @@ Default outputs:
 
 ### Assemble from parts (PF-6)
 ```bash
-./fpf.py assemble --manifest <manifest-path>
+./fpf-cli assemble --manifest <manifest-path>
 ```
 
 Manifest format (YAML, minimal subset):

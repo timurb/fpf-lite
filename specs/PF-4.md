@@ -28,8 +28,8 @@ only normative content needed for strict validation or code generation.
   line reduction.
 
 ## Invocation
-- `./fpf.py strip-aggressive`
-- `./fpf.py strip-aggressive --work-dir <dir>`
+- `./fpf-cli strip-aggressive`
+- `./fpf-cli strip-aggressive --work-dir <dir>`
 
 ## Constraints
 - Operate line-by-line without loading the full file into memory beyond the

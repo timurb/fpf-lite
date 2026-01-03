@@ -26,9 +26,9 @@ headers. Report all violations and fail if any are found.
 - Exit with non-zero status if any violations are found.
 
 ## Invocation
-- `./fpf.py check-typographics`
-- `./fpf.py check-typographics --work-dir <dir>`
-- `./fpf.py check-typographics --input <filename> --work-dir <dir>`
+- `./fpf-cli check-typographics`
+- `./fpf-cli check-typographics --work-dir <dir>`
+- `./fpf-cli check-typographics --input <filename> --work-dir <dir>`
 
 ## Constraints
 - Do not load entire input into memory.
