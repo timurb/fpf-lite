@@ -64,3 +64,10 @@ baseline_manifest: FPF/parts/FPF-Parts-Manifest.yaml
 ```
 
 Paths can be absolute or relative to the manifest file directory.
+
+
+## License and authors
+* License:: MIT
+* Author:: Timur Batyrshin <erthad@gmail.com>
+
+[FPF](https://github.com/ailev/FPF) and all derivatives produced by this tool is authored by Anatoly Levenchuk and I hold no claims for it.
